@@ -22,13 +22,12 @@ pub fn solve_part1(input: &str) -> String {
         .map(|line| {
             let (first, second) = line.split_at(line.len() / 2);
 
-            let chars = first.chars().collect::<HashSet<char>>();
-
-            second
+            first
                 .chars()
-                .find(|char| chars.get(&char).is_some())
+                .collect::<HashSet<char>>()
+                .intersection(&second.chars().collect::<HashSet<_>>())
                 .map(|char| priorities.get(&char).unwrap())
-                .unwrap()
+                .sum::<usize>()
         })
         .sum::<usize>()
         .to_string()
