@@ -61,32 +61,28 @@ impl FromStr for Stacks {
 }
 
 impl Stacks {
-    fn move_crates_9000(&mut self, mov: Move) {
-        for _ in 1..=mov.times {
-            let labels = self.0.get_mut(&mov.from).unwrap();
-            let label = labels.pop_front().unwrap();
+    fn move_crates_9000(&mut self, Move { times, from, to }: Move) {
+        let source_crates = self.0.get_mut(&from).unwrap();
 
-            self.0
-                .entry(mov.to)
-                .and_modify(|labels| labels.push_front(label));
-        }
+        let mut piles = source_crates.drain(0..times).rev().collect::<VecDeque<_>>();
+
+        let mut destination_crate = self.0.get_mut(&to).unwrap();
+
+        piles.append(&mut destination_crate);
+
+        self.0.insert(to, piles);
     }
 
     fn move_crates_9001(&mut self, Move { times, to, from }: Move) {
-        let mut pile = VecDeque::new();
+        let source_crates = self.0.get_mut(&from).unwrap();
 
-        for _ in 1..=times {
-            let labels = self.0.get_mut(&from).unwrap();
-            let label = labels.pop_front().unwrap();
+        let mut piles = source_crates.drain(0..times).collect::<VecDeque<_>>();
 
-            pile.push_front(label);
-        }
+        let mut destination_crate = self.0.get_mut(&to).unwrap();
 
-        for crat in pile {
-            self.0
-                .entry(to)
-                .and_modify(|labels| labels.push_front(crat));
-        }
+        piles.append(&mut destination_crate);
+
+        self.0.insert(to, piles);
     }
 
     fn crates_on_top(&mut self) -> String {
