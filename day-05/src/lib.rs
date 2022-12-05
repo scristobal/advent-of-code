@@ -19,7 +19,9 @@ impl FromStr for Move {
         let mut t = s
             .chars()
             .filter(|c| c.is_numeric())
-            .map(|c| c.to_digit(10).unwrap() as usize)
+            .map(|c| c.to_digit(10))
+            .filter_map(|v| v)
+            .map(|v| v as usize)
             .collect::<Vec<_>>();
 
         let to = t.pop().unwrap() - 1;
@@ -70,11 +72,11 @@ impl Stacks {
         }
     }
 
-    fn move_crates_9001(&mut self, mov: Move) {
+    fn move_crates_9001(&mut self, Move { times, to, from }: Move) {
         let mut pile = VecDeque::new();
 
-        for _ in 1..=mov.times {
-            let labels = self.0.get_mut(&mov.from).unwrap();
+        for _ in 1..=times {
+            let labels = self.0.get_mut(&from).unwrap();
             let label = labels.pop_front().unwrap();
 
             pile.push_front(label);
@@ -82,7 +84,7 @@ impl Stacks {
 
         for crat in pile {
             self.0
-                .entry(mov.to)
+                .entry(to)
                 .and_modify(|labels| labels.push_front(crat));
         }
     }
