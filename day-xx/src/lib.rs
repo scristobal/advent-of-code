@@ -1,8 +1,10 @@
 pub fn solve_part1(input: &str) -> String {
+    dbg!(input);
     todo!()
 }
 
 pub fn solve_part2(input: &str) -> String {
+    dbg!(input);
     todo!()
 }
 
