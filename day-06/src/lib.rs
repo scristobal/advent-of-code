@@ -28,15 +28,13 @@ fn validate_marker(m: &[char]) -> bool {
 }
 
 pub fn solve_part2(input: &str) -> String {
-    let a = input.chars().collect::<Vec<_>>();
-
     let len = 14;
 
-    let b = a
-        .as_slice()
+    let b = input
+        .as_bytes()
         .windows(len)
         .enumerate()
-        .find(|(_, w)| validate_marker(w))
+        .find(|(_, w)| w.into_iter().collect::<HashSet<_>>().len() == w.len())
         .unwrap();
 
     (b.0 + len).to_string()
