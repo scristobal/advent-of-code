@@ -1,4 +1,4 @@
-use day_xx::solve_part2;
+use advent_of_code_2022::solve_part2;
 use std::fs;
 
 fn main() {

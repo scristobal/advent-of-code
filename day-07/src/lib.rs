@@ -1,10 +1,12 @@
 use std::collections::HashMap;
 
-use nom::branch::alt;
-use nom::bytes::complete::tag;
-use nom::character::complete::{self, newline};
-use nom::multi::separated_list1;
-use nom::{character::complete::alpha1, IResult};
+use nom::{
+    branch::alt,
+    bytes::complete::tag,
+    character::complete::{self, alpha1, newline},
+    multi::separated_list1,
+    IResult,
+};
 
 #[derive(Debug)]
 enum InputLine<'a> {
