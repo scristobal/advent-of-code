@@ -36,42 +36,38 @@ fn directions(m: Vec<u32>, i: usize) -> [Vec<u32>; 4] {
 
 pub fn solve_part1(input: &str) -> String {
     let field = input
-        .replace("\n", "")
         .chars()
-        .map(|c| c.to_digit(10).unwrap())
+        .filter_map(|c| c.to_digit(10))
         .collect::<Vec<_>>();
 
     field
         .iter()
         .enumerate()
-        .filter(|&(t, size)| {
+        .filter_map(|(t, size)| {
             directions(field.clone(), t)
                 .iter()
                 .map(|dir| dir.iter().filter(|&t| t < size).count() == dir.len())
                 .reduce(|acc, i| acc || i)
-                .unwrap()
         })
         .count()
         .to_string()
 }
 pub fn solve_part2(input: &str) -> String {
     let field = input
-        .replace("\n", "")
         .chars()
-        .map(|c| c.to_digit(10).unwrap())
+        .filter_map(|c| c.to_digit(10))
         .collect::<Vec<_>>();
 
     field
         .iter()
         .enumerate()
-        .map(|(t, size)| {
+        .filter_map(|(t, size)| {
             directions(field.clone(), t)
                 .iter()
                 .map(|dir| cmp::min(dir.iter().take_while(|&t| t < size).count() + 1, dir.len()))
                 .reduce(|acc, i| acc * i)
         })
         .max()
-        .unwrap()
         .unwrap()
         .to_string()
 }
