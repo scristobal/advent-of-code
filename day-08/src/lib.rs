@@ -1,6 +1,6 @@
 use std::cmp;
 
-fn row(m: Vec<u32>, i: usize) -> (Vec<u32>, Vec<u32>) {
+fn directions(m: Vec<u32>, i: usize) -> [Vec<u32>; 4] {
     let size = (m.len() as f32).sqrt() as usize;
     let start = i - (i % size);
 
@@ -12,11 +12,6 @@ fn row(m: Vec<u32>, i: usize) -> (Vec<u32>, Vec<u32>) {
         .copied()
         .collect();
 
-    (left, right)
-}
-
-fn col(m: Vec<u32>, i: usize) -> (Vec<u32>, Vec<u32>) {
-    let size = (m.len() as f32).sqrt() as usize;
     let start = i % size;
 
     let up = m
@@ -36,7 +31,7 @@ fn col(m: Vec<u32>, i: usize) -> (Vec<u32>, Vec<u32>) {
         .copied()
         .collect();
 
-    (up, down)
+    [left, right, up, down]
 }
 
 pub fn solve_part1(input: &str) -> String {
@@ -50,15 +45,11 @@ pub fn solve_part1(input: &str) -> String {
         .iter()
         .enumerate()
         .filter(|&(t, size)| {
-            let (left, right) = row(field.clone(), t);
-            let (up, down) = col(field.clone(), t);
-
-            let vis_up = up.iter().filter(|&t| t < size).count() == up.len();
-            let vis_down = down.iter().filter(|&t| t < size).count() == down.len();
-            let vis_left = left.iter().filter(|&t| t < size).count() == left.len();
-            let vis_right = right.iter().filter(|&t| t < size).count() == right.len();
-
-            vis_up || vis_down || vis_left || vis_right
+            directions(field.clone(), t)
+                .iter()
+                .map(|dir| dir.iter().filter(|&t| t < size).count() == dir.len())
+                .reduce(|acc, i| acc || i)
+                .unwrap()
         })
         .count()
         .to_string()
@@ -74,24 +65,13 @@ pub fn solve_part2(input: &str) -> String {
         .iter()
         .enumerate()
         .map(|(t, size)| {
-            let (left, right) = row(field.clone(), t);
-            let (up, down) = col(field.clone(), t);
-
-            let score_up = up.iter().take_while(|&t| t < size).count() + 1;
-            let score_up = cmp::min(score_up, up.len());
-
-            let score_down = down.iter().take_while(|&t| t < size).count() + 1;
-            let score_down = cmp::min(score_down, down.len());
-
-            let score_left = left.iter().take_while(|&t| t < size).count() + 1;
-            let score_left = cmp::min(score_left, left.len());
-
-            let score_right = right.iter().take_while(|&t| t < size).count() + 1;
-            let score_right = cmp::min(score_right, right.len());
-
-            score_up * score_down * score_left * score_right
+            directions(field.clone(), t)
+                .iter()
+                .map(|dir| cmp::min(dir.iter().take_while(|&t| t < size).count() + 1, dir.len()))
+                .reduce(|acc, i| acc * i)
         })
         .max()
+        .unwrap()
         .unwrap()
         .to_string()
 }
