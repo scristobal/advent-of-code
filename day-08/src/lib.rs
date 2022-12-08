@@ -1,11 +1,5 @@
 use std::cmp;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-struct Tree {
-    index: usize,
-    size: u32,
-}
-
 fn row(m: Vec<u32>, i: usize) -> (Vec<u32>, Vec<u32>) {
     let size = (m.len() as f32).sqrt() as usize;
     let start = i - (i % size);
