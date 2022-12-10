@@ -58,7 +58,7 @@ fn create_fs(input: &str) -> HashMap<String, u32> {
             current_dir = match to {
                 "/" => "".to_string(),
                 ".." => {
-                    let (res, _) = current_dir.rsplit_once("/").unwrap();
+                    let (res, _) = current_dir.rsplit_once('/').unwrap();
 
                     res.to_string()
                 }
@@ -70,7 +70,7 @@ fn create_fs(input: &str) -> HashMap<String, u32> {
                 .and_modify(|size| *size += file)
                 .or_insert(file);
 
-            let mut res = current_dir.rsplit_once("/");
+            let mut res = current_dir.rsplit_once('/');
 
             loop {
                 let Some(up_dir) = res else{
@@ -81,7 +81,7 @@ fn create_fs(input: &str) -> HashMap<String, u32> {
                     .and_modify(|size| *size += file)
                     .or_insert(file);
 
-                res = up_dir.0.rsplit_once("/");
+                res = up_dir.0.rsplit_once('/');
             }
         }
         InputLine::ListDir => {}

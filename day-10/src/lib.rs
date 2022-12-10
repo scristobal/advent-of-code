@@ -78,8 +78,7 @@ pub fn solve_part2(input: &str) -> String {
         }
     })
     .array_chunks::<SCAN_LINE_LEN>()
-    .map(|line| line.into_iter().chain(['\n']))
-    .flatten()
+    .flat_map(|line| line.into_iter().chain(['\n']))
     .collect::<String>()
 }
 

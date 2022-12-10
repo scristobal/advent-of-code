@@ -19,8 +19,7 @@ impl FromStr for Move {
         let mut t = s
             .chars()
             .filter(|c| c.is_numeric())
-            .map(|c| c.to_digit(10))
-            .filter_map(|v| v)
+            .filter_map(|c| c.to_digit(10))
             .map(|v| v as usize)
             .collect::<Vec<_>>();
 
@@ -31,7 +30,7 @@ impl FromStr for Move {
             .into_iter()
             .rev()
             .enumerate()
-            .fold(0, |acc, (i, e)| acc + (10 as usize).pow(i as u32) * e);
+            .fold(0, |acc, (i, e)| acc + 10_usize.pow(i as u32) * e);
 
         Ok(Move { times, to, from })
     }
@@ -66,9 +65,9 @@ impl Stacks {
 
         let mut piles = source_crates.drain(0..times).rev().collect::<VecDeque<_>>();
 
-        let mut destination_crate = self.0.get_mut(&to).unwrap();
+        let destination_crate = self.0.get_mut(&to).unwrap();
 
-        piles.append(&mut destination_crate);
+        piles.append(destination_crate);
 
         self.0.insert(to, piles);
     }
@@ -78,9 +77,9 @@ impl Stacks {
 
         let mut piles = source_crates.drain(0..times).collect::<VecDeque<_>>();
 
-        let mut destination_crate = self.0.get_mut(&to).unwrap();
+        let destination_crate = self.0.get_mut(&to).unwrap();
 
-        piles.append(&mut destination_crate);
+        piles.append(destination_crate);
 
         self.0.insert(to, piles);
     }

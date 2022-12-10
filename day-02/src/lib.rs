@@ -3,12 +3,12 @@ pub mod part1 {
     use std::io::{BufRead, BufReader};
 
     fn value(played: &str) -> usize {
-        return match played {
+        match played {
             "A" | "X" => 1,
             "B" | "Y" => 2,
             "C" | "Z" => 3,
             _ => 0,
-        };
+        }
     }
 
     fn win(elf: &str, me: &str) -> usize {
@@ -33,7 +33,7 @@ pub mod part1 {
         for line in reader.lines() {
             let line = line.unwrap();
 
-            let Some((elf, me)) = line.split_once(" ") else {
+            let Some((elf, me)) = line.split_once(' ') else {
             return
         };
 

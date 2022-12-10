@@ -88,7 +88,7 @@ pub fn solve_part1(input: &str) -> String {
                 let mut diff = state.head.diff(&state.tail);
                 diff.normalize();
                 state.tail.mov(&diff);
-                Some(state.tail.clone())
+                Some(state.tail)
             },
         )
         .collect::<HashSet<_>>()
@@ -112,7 +112,7 @@ pub fn solve_part2(input: &str) -> String {
                 state.0[l + 1].mov(&diff);
             }
 
-            Some(state.0[9].clone())
+            Some(state.0[9])
         })
         .collect::<HashSet<_>>()
         .len()

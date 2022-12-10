@@ -34,7 +34,7 @@ pub fn solve_part2(input: &str) -> String {
         .as_bytes()
         .windows(len)
         .enumerate()
-        .find(|(_, w)| w.into_iter().collect::<HashSet<_>>().len() == w.len())
+        .find(|(_, w)| w.iter().collect::<HashSet<_>>().len() == w.len())
         .unwrap();
 
     (b.0 + len).to_string()
