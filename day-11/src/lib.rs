@@ -88,7 +88,7 @@ impl<'a> Monkeys<'a> {
 
     fn round(&mut self, worry_factor: u128) {
         for i in 0..self.0.len() {
-            let monkey = &mut self.0[i];
+            let monkey = self.0.get_mut(i).unwrap();
 
             let distribution_items = monkey
                 .items
@@ -120,7 +120,11 @@ impl<'a> Monkeys<'a> {
             monkey.items.clear();
 
             for distribution in distribution_items {
-                self.0[distribution.0].items.push(distribution.1);
+                self.0
+                    .get_mut(distribution.0)
+                    .unwrap()
+                    .items
+                    .push(distribution.1);
             }
         }
     }
