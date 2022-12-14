@@ -35,7 +35,7 @@ struct Map {
 
 impl Debug for Map {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut output = "".to_string();
+        let mut output = "\n".to_string();
         for y in 0..=(self.max_height + 10) {
             for x in (self.min_width - 10)..=(self.max_width + 10) {
                 match self.layout.get(&Coords { x, y }) {
@@ -111,43 +111,43 @@ impl Map {
         let keys = self.layout.keys().copied().collect::<Vec<_>>();
 
         for coords in keys {
-            let block = self.layout.get(&coords).unwrap();
+            let block = self.layout.get(&coords);
 
-            if block == &Sand {
-                let down = Coords {
-                    x: coords.x,
-                    y: coords.y + 1,
-                };
+            let Some(Sand) = block  else { continue };
 
-                if self.layout.get(&down).is_none() {
-                    self.layout.remove(&coords);
-                    self.layout.insert(down, Sand);
-                    is_stable = false;
-                    continue;
-                }
+            let down = Coords {
+                x: coords.x,
+                y: coords.y + 1,
+            };
 
-                let left = Coords {
-                    x: coords.x - 1,
-                    y: coords.y + 1,
-                };
+            if self.layout.get(&down).is_none() {
+                self.layout.remove(&coords);
+                self.layout.insert(down, Sand);
+                is_stable = false;
+                continue;
+            }
 
-                if self.layout.get(&left).is_none() {
-                    self.layout.remove(&coords);
-                    self.layout.insert(left, Sand);
-                    is_stable = false;
-                    continue;
-                }
+            let left = Coords {
+                x: coords.x - 1,
+                y: coords.y + 1,
+            };
 
-                let right = Coords {
-                    x: coords.x + 1,
-                    y: coords.y + 1,
-                };
-                if self.layout.get(&right).is_none() {
-                    self.layout.remove(&coords);
-                    self.layout.insert(right, Sand);
-                    is_stable = false;
-                    continue;
-                }
+            if self.layout.get(&left).is_none() {
+                self.layout.remove(&coords);
+                self.layout.insert(left, Sand);
+                is_stable = false;
+                continue;
+            }
+
+            let right = Coords {
+                x: coords.x + 1,
+                y: coords.y + 1,
+            };
+            if self.layout.get(&right).is_none() {
+                self.layout.remove(&coords);
+                self.layout.insert(right, Sand);
+                is_stable = false;
+                continue;
             }
         }
 
@@ -175,16 +175,18 @@ pub fn solve_part1(input: &str) -> String {
 
     m.pop();
 
-    dbg!(&m);
+    // dbg!(&m);
 
     while !m.is_over() {
         let stable = m.tick();
 
         if stable {
-            dbg!(&m);
+            // dbg!(&m);
             m.pop();
         }
     }
+
+    dbg!(&m);
 
     (m.layout
         .values()
@@ -200,6 +202,7 @@ pub fn solve_part2(input: &str) -> String {
     m.pop();
 
     for h in 0..=(m.max_height) {
+        //dbg!(&m);
         let reversed = m
             .layout
             .clone()
