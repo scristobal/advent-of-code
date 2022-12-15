@@ -1,19 +1,15 @@
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashSet, VecDeque};
 
 use nom::{
     bytes::complete::tag,
     character::complete::{self, newline},
-    combinator::complete,
-    multi::{separated_list0, separated_list1},
+    multi::separated_list1,
     sequence::separated_pair,
-    *,
 };
 
 use nom::sequence::pair;
 
 use nom::{sequence::preceded, IResult};
-
-use itertools::Itertools;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 struct Coords {
@@ -108,12 +104,10 @@ pub fn solve_part1(input: &str, row: i64) -> String {
         .iter()
         .fold(0, |acc, interval| acc + interval.1 - interval.0 + 1) as usize;
 
-    dbg!(&s, &b);
-
     (s - b).to_string()
 }
 
-pub fn solve_part2(input: &str) -> String {
+pub fn solve_part2(input: &str, size: i64) -> String {
     let (_, map) = file(input).unwrap();
 
     let beacons_freqs = map
@@ -121,13 +115,10 @@ pub fn solve_part2(input: &str) -> String {
         .copied()
         .collect::<HashSet<_>>()
         .iter()
-        .map(|Pair { beacon, .. }| beacon.x * MAX + beacon.y)
+        .map(|Pair { beacon, .. }| beacon.x * size + beacon.y)
         .collect::<Vec<_>>();
 
-    const MAX: i64 = 4_000_000;
-    const MIN: i64 = 0;
-
-    for row in MIN..=MAX {
+    for row in 0..=size {
         let mut intervals = Vec::<(i64, i64)>::new();
 
         for Pair { sensor, beacon } in map.clone() {
@@ -142,8 +133,8 @@ pub fn solve_part2(input: &str) -> String {
             let dy = distance_to_beacon - distance_to_row;
 
             let interval = (
-                (sensor.x - dy).max(MIN).min(MAX),
-                (sensor.x + dy).max(MIN).min(MAX),
+                (sensor.x - dy).max(0).min(size),
+                (sensor.x + dy).max(0).min(size),
             );
 
             intervals.push(interval)
@@ -159,7 +150,7 @@ pub fn solve_part2(input: &str) -> String {
             let mut top = stack.pop().unwrap();
 
             if (top.1 + 1) < interval.0 {
-                let freq = (top.1 + 1) * MAX + row;
+                let freq = (top.1 + 1) * 4_000_000 + row;
                 if !beacons_freqs.contains(&freq) {
                     return freq.to_string();
                 }
@@ -188,7 +179,7 @@ mod tests {
 
     #[test]
     fn part2_works() {
-        let result = solve_part2(INPUT);
+        let result = solve_part2(INPUT, 20);
         assert_eq!(result, "56000011");
     }
 }

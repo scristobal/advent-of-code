@@ -3,5 +3,5 @@ use std::fs;
 
 fn main() {
     let file = fs::read_to_string("./input.txt").unwrap();
-    println!("{}", solve_part2(&file));
+    println!("{}", solve_part2(&file, 4_000_000));
 }
