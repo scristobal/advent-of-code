@@ -12,7 +12,7 @@ pub fn solve_part2(input: &str) -> String {
 mod tests {
     use super::*;
 
-    const INPUT: &str = "";
+    const INPUT: &str = include_str!("../sample.txt");
 
     #[test]
     fn part1_works() {
