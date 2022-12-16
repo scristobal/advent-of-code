@@ -1,3 +1,4 @@
+use core::time;
 use std::collections::{HashMap, HashSet};
 
 use nom::character::complete::alpha1;
@@ -145,7 +146,8 @@ pub fn solve_part1(input: &str) -> String {
             for next in &state.options {
                 let node = *state.path.last().unwrap();
 
-                let time_left = state.time_left - distances.get(&(*node, **next)).unwrap() - 1;
+                let time_left =
+                    (state.time_left - distances.get(&(*node, **next)).unwrap() - 1).max(0);
 
                 let rate = *rates.get(next).unwrap();
                 let flow = state.flow + rate * time_left;
@@ -158,7 +160,14 @@ pub fn solve_part1(input: &str) -> String {
 
                 options.retain(|option| option != next);
 
-                if options.is_empty() {
+                options.sort_unstable_by(|a, b| {
+                    let a_rate = *rates.get(a).unwrap();
+                    let b_rate = *rates.get(b).unwrap();
+
+                    b_rate.cmp(a_rate)
+                });
+
+                if options.is_empty() || time_left == 0 {
                     count += 1;
                     if max_flow < flow {
                         max_flow = flow;
