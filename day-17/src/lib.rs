@@ -1,9 +1,7 @@
-use core::num;
 use std::{
     collections::{HashMap, HashSet},
     fmt::Debug,
     ops::Add,
-    time::Instant,
 };
 
 #[derive(Clone, Copy)]
@@ -134,7 +132,7 @@ impl Piece {
             .any(|p| grid.solid.contains(&p) || p.y <= 0 || (grid.width as i32) < p.x || p.x <= 0)
     }
 
-    pub fn apply(&mut self, movement: &Push, grid: &Grid) -> bool {
+    pub fn push(&mut self, movement: &Push, grid: &Grid) -> bool {
         let mut moved = false;
 
         let v = &match movement {
@@ -259,7 +257,7 @@ impl Board {
 
     pub fn pop_and_drop(&mut self) {
         let shape = self.factory.next_shape();
-        //dbg!(self.grid.height());
+
         self.piece = Self::pop(
             Coords {
                 x: 3,
@@ -268,18 +266,14 @@ impl Board {
             shape,
         );
 
-        //dbg!("POP", &self);
+        let mut piece_moved = true;
 
-        let mut pieze_moved = true;
-
-        while pieze_moved {
+        while piece_moved {
             let push = self.factory.next_push();
-            pieze_moved = self.piece.apply(&push, &self.grid);
-            //dbg!("MOVE", &self);
+            piece_moved = self.piece.push(&push, &self.grid);
         }
 
         self.grid.consolidate(&self.piece);
-        //dbg!("CONS", &self);
     }
 
     pub fn state(&self) -> State {
@@ -306,18 +300,11 @@ fn parser(s: &str) -> Vec<Push> {
         .collect()
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct State {
-    shape_index: i32,
-    push_index: i32,
-    relative_heights: Vec<i64>,
-}
-
-pub fn solve_part1(input: &str, num_pieces: i32) -> String {
+pub fn solve_part1(input: &str, num_pieces: u32) -> String {
     let pushes = parser(input);
+    let factory = Factory::new(pushes);
 
     let grid = Grid::new(7);
-    let factory = Factory::new(pushes);
 
     let mut board = Board::new(grid, factory);
 
@@ -331,15 +318,27 @@ pub fn solve_part1(input: &str, num_pieces: i32) -> String {
     board.grid.height().to_string()
 }
 
-pub fn solve_part2(input: &str, num_pieces: i64) -> String {
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+struct State {
+    shape_index: i32,
+    push_index: i32,
+    relative_heights: Vec<i64>,
+}
+
+struct Result {
+    num_pieces: u64,
+    height: u64,
+}
+
+pub fn solve_part2(input: &str, num_pieces: u64) -> String {
     let pushes = parser(input);
+    let factory = Factory::new(pushes);
 
     let grid = Grid::new(7);
-    let factory = Factory::new(pushes);
 
     let mut board = Board::new(grid, factory);
 
-    let mut cache = HashMap::<State, (u64, u64)>::new();
+    let mut cache = HashMap::<State, Result>::new();
 
     let mut count = 0;
 
@@ -350,35 +349,28 @@ pub fn solve_part2(input: &str, num_pieces: i64) -> String {
 
         let state = board.state();
 
-        if count % 216 == 0 && cache.contains_key(&state) {
+        let result = Result {
+            num_pieces: count,
+            height: board.grid.height() as u64,
+        };
+
+        if cache.contains_key(&state) {
             let prev = cache.get(&state).unwrap();
 
-            println!(
-                "Jack pot!! {:?} seen at {} and then at {}, with heghts {} and then {}",
-                state,
-                prev.0,
-                count,
-                prev.1,
-                board.grid.height()
+            break (
+                count - prev.num_pieces,
+                board.grid.height() - prev.height as i64,
             );
-
-            println!("Pieces difference is {}", count - prev.0 as i64);
-            println!(
-                "Height difference is {}",
-                board.grid.height() - prev.1 as i64
-            );
-
-            break (count - prev.0 as i64, board.grid.height() - prev.1 as i64);
         }
 
-        cache.insert(state, (count as u64, board.grid.height() as u64));
+        cache.insert(state, result);
     };
 
     let mut total_height: u128 = (num_pieces as u128 / pieces as u128) * height as u128;
 
-    let left_pieces = num_pieces % pieces;
+    let remainding_pieces = num_pieces % pieces;
 
-    total_height += solve_part1(input, left_pieces as i32)
+    total_height += solve_part1(input, remainding_pieces as u32)
         .parse::<u128>()
         .unwrap();
 
