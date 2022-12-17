@@ -158,7 +158,6 @@ impl Piece {
 struct Grid {
     solid: HashSet<Coords>,
     width: u32,
-    floor: u64,
 }
 
 impl Debug for Board {
@@ -195,7 +194,6 @@ impl Grid {
         Grid {
             solid: HashSet::new(),
             width,
-            floor: 0,
         }
     }
 
@@ -204,20 +202,17 @@ impl Grid {
             self.solid.insert(*p);
         }
 
-        let bounds = self.heights();
+        let floor = self.floor();
 
-        let bound = bounds.iter().min().unwrap_or(&0);
-
-        self.solid.retain(|p| p.y >= *bound);
-        self.floor = *bound as u64;
+        self.solid.retain(|p| p.y >= floor);
     }
 
     pub fn height(&self) -> i64 {
         self.solid.iter().map(|p| p.y).max().unwrap_or(0)
     }
 
-    pub fn heights(&self) -> Vec<i64> {
-        let mut bounds = vec![];
+    fn floor(&self) -> i64 {
+        let mut floor = i64::MAX;
 
         for x in 1..=self.width {
             let max_y = self
@@ -227,10 +222,31 @@ impl Grid {
                 .max()
                 .unwrap_or(0);
 
-            bounds.push(max_y);
+            if max_y < floor {
+                floor = max_y;
+            }
         }
 
-        bounds
+        floor
+    }
+
+    pub fn columns(&self) -> Vec<Vec<i64>> {
+        let floor = self.floor();
+
+        (1..=self.width)
+            .map(|x| {
+                self.solid
+                    .iter()
+                    .filter_map(|p| {
+                        if p.x == x as i32 && p.y >= floor {
+                            Some(p.y - floor)
+                        } else {
+                            None
+                        }
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .collect()
     }
 }
 
@@ -280,12 +296,7 @@ impl Board {
         State {
             shape_index: self.factory.shape_index,
             push_index: self.factory.push_index,
-            relative_heights: self
-                .grid
-                .heights()
-                .iter()
-                .map(|h| h - self.grid.height())
-                .collect(),
+            colums: self.grid.columns(),
         }
     }
 }
@@ -322,7 +333,7 @@ pub fn solve_part1(input: &str, num_pieces: u32) -> String {
 struct State {
     shape_index: i32,
     push_index: i32,
-    relative_heights: Vec<i64>,
+    colums: Vec<Vec<i64>>,
 }
 
 struct Result {
