@@ -1,5 +1,10 @@
 use core::num;
-use std::{collections::HashSet, fmt::Debug, ops::Add};
+use std::{
+    collections::{HashMap, HashSet},
+    fmt::Debug,
+    ops::Add,
+    time::Instant,
+};
 
 #[derive(Clone, Copy)]
 enum Push {
@@ -105,8 +110,6 @@ impl Piece {
             ],
         };
 
-        let height = body.iter().map(|p| p.y).max().unwrap();
-
         let body = body
             .iter()
             .map(|p| {
@@ -157,6 +160,7 @@ impl Piece {
 struct Grid {
     solid: HashSet<Coords>,
     width: u32,
+    floor: u64,
 }
 
 impl Debug for Board {
@@ -193,6 +197,7 @@ impl Grid {
         Grid {
             solid: HashSet::new(),
             width,
+            floor: 0,
         }
     }
 
@@ -200,10 +205,34 @@ impl Grid {
         for p in &pieze.body {
             self.solid.insert(*p);
         }
+
+        let bounds = self.heights();
+
+        let bound = bounds.iter().min().unwrap_or(&0);
+
+        self.solid.retain(|p| p.y >= *bound);
+        self.floor = *bound as u64;
     }
 
     pub fn height(&self) -> i64 {
         self.solid.iter().map(|p| p.y).max().unwrap_or(0)
+    }
+
+    pub fn heights(&self) -> Vec<i64> {
+        let mut bounds = vec![];
+
+        for x in 1..=self.width {
+            let max_y = self
+                .solid
+                .iter()
+                .filter_map(|p| if p.x == x as i32 { Some(p.y) } else { None })
+                .max()
+                .unwrap_or(0);
+
+            bounds.push(max_y);
+        }
+
+        bounds
     }
 }
 
@@ -214,7 +243,7 @@ struct Board {
 }
 
 impl Board {
-    pub fn new(grid: Grid, mut factory: Factory) -> Self {
+    pub fn new(grid: Grid, factory: Factory) -> Self {
         let piece = Piece { body: vec![] };
 
         Board {
@@ -230,16 +259,16 @@ impl Board {
 
     pub fn pop_and_drop(&mut self) {
         let shape = self.factory.next_shape();
-        // dbg!(self.grid.height());
+        //dbg!(self.grid.height());
         self.piece = Self::pop(
             Coords {
                 x: 3,
-                y: self.grid.height() as i64 + 4,
+                y: self.grid.height() + 4,
             },
             shape,
         );
 
-        // dbg!("POP", &self);
+        //dbg!("POP", &self);
 
         let mut pieze_moved = true;
 
@@ -252,6 +281,19 @@ impl Board {
         self.grid.consolidate(&self.piece);
         //dbg!("CONS", &self);
     }
+
+    pub fn state(&self) -> State {
+        State {
+            shape_index: self.factory.shape_index,
+            push_index: self.factory.push_index,
+            relative_heights: self
+                .grid
+                .heights()
+                .iter()
+                .map(|h| h - self.grid.height())
+                .collect(),
+        }
+    }
 }
 
 fn parser(s: &str) -> Vec<Push> {
@@ -262,6 +304,13 @@ fn parser(s: &str) -> Vec<Push> {
             _ => None,
         })
         .collect()
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+struct State {
+    shape_index: i32,
+    push_index: i32,
+    relative_heights: Vec<i64>,
 }
 
 pub fn solve_part1(input: &str, num_pieces: i32) -> String {
@@ -277,7 +326,6 @@ pub fn solve_part1(input: &str, num_pieces: i32) -> String {
     while count < num_pieces {
         count += 1;
         board.pop_and_drop();
-        println!("{}", &count);
     }
 
     board.grid.height().to_string()
@@ -291,15 +339,50 @@ pub fn solve_part2(input: &str, num_pieces: i64) -> String {
 
     let mut board = Board::new(grid, factory);
 
+    let mut cache = HashMap::<State, (u64, u64)>::new();
+
     let mut count = 0;
 
-    while count < num_pieces {
+    let (pieces, height) = loop {
         count += 1;
-        board.pop_and_drop();
-        println!("{}", &count);
-    }
 
-    board.grid.height().to_string()
+        board.pop_and_drop();
+
+        let state = board.state();
+
+        if count % 216 == 0 && cache.contains_key(&state) {
+            let prev = cache.get(&state).unwrap();
+
+            println!(
+                "Jack pot!! {:?} seen at {} and then at {}, with heghts {} and then {}",
+                state,
+                prev.0,
+                count,
+                prev.1,
+                board.grid.height()
+            );
+
+            println!("Pieces difference is {}", count - prev.0 as i64);
+            println!(
+                "Height difference is {}",
+                board.grid.height() - prev.1 as i64
+            );
+
+            break (count - prev.0 as i64, board.grid.height() - prev.1 as i64);
+        }
+
+        cache.insert(state, (count as u64, board.grid.height() as u64));
+    };
+
+    let mut total_height: u128 = (num_pieces as u128 / pieces as u128) * height as u128;
+
+    let left_pieces = num_pieces % pieces;
+
+    total_height += solve_part1(input, left_pieces as i32)
+        .parse::<u128>()
+        .unwrap();
+
+    total_height.to_string()
 }
 
 #[cfg(test)]
