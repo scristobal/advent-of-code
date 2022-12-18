@@ -1,13 +1,15 @@
 use std::collections::HashSet;
 
-fn parse(s: &str) -> HashSet<(i32, i32, i32)> {
+use itertools::Itertools;
+
+fn parse(s: &str) -> HashSet<[i32; 3]> {
     s.lines()
         .map(|l| {
             let v = l
                 .split(',')
                 .map(|v| v.parse::<i32>().unwrap())
                 .collect::<Vec<_>>();
-            (v[0], v[1], v[2])
+            [v[0], v[1], v[2]]
         })
         .collect()
 }
@@ -20,23 +22,13 @@ pub fn solve_part1(input: &str) -> String {
     for cube in &cubes {
         surface += 6;
 
-        if cubes.contains(&(cube.0 - 1, cube.1, cube.2)) {
-            surface -= 1;
-        }
-        if cubes.contains(&(cube.0 + 1, cube.1, cube.2)) {
-            surface -= 1;
-        }
-        if cubes.contains(&(cube.0, cube.1 - 1, cube.2)) {
-            surface -= 1;
-        }
-        if cubes.contains(&(cube.0, cube.1 + 1, cube.2)) {
-            surface -= 1;
-        }
-        if cubes.contains(&(cube.0, cube.1, cube.2 - 1)) {
-            surface -= 1;
-        }
-        if cubes.contains(&(cube.0, cube.1, cube.2 + 1)) {
-            surface -= 1;
+        for (dim, dir) in (0..3).cartesian_product([-1, 1].into_iter()) {
+            let mut adjacent = *cube;
+
+            adjacent[dim] += dir;
+            if cubes.contains(&adjacent) {
+                surface -= 1;
+            }
         }
     }
 
@@ -44,11 +36,52 @@ pub fn solve_part1(input: &str) -> String {
 }
 
 pub fn solve_part2(input: &str) -> String {
-    let cubes = parse(input);
+    let cubes = parse(input); // original problems set of cubes
 
-    let mut surface = 0;
+    let corner = *cubes.iter().min().unwrap(); // guarantees start faces outside
+    let start = (corner, 0, -1); // (cube, dimension, direction)
 
-    todo!()
+    let mut stack = vec![start]; // DFS stack of faces facing outside
+
+    let mut visited = HashSet::new(); // DFS visited
+
+    let mut surface = 0; // outside faces, algorithm output
+
+    while let Some(face) = stack.pop() {
+        if !visited.contains(&face) {
+            let (cube, face_dim, face_dir) = face;
+
+            surface += 1; // warranted to be facing outside, see (1) (2) and (3)
+
+            for (dim, dir) in (0..3).cartesian_product([-1, 1].into_iter()) {
+                if dim == face_dim {
+                    continue; // impossible to rotate on self dimension, not necessary
+                }
+
+                let mut diagonal = cube;
+                diagonal[face_dim] += face_dir;
+                diagonal[dim] += dir;
+
+                if cubes.contains(&diagonal) {
+                    stack.push((diagonal, dim, -dir)); // (1) if diagonal cube in set, faces are connected
+                    continue;
+                }
+
+                let mut adjunct = cube;
+                adjunct[dim] += dir; //
+
+                if cubes.contains(&adjunct) {
+                    stack.push((adjunct, face_dim, face_dir)); // (2) if diagonal cube not in set, but adjacent is, faces are connected
+                    continue;
+                }
+
+                stack.push((cube, dim, dir)); // (3) no diagonal nor adjacent in set, contiguous face is connected
+            }
+        }
+        visited.insert(face);
+    }
+
+    surface.to_string()
 }
 
 #[cfg(test)]
