@@ -140,12 +140,29 @@ fn parse(s: &str) -> IResult<&str, Vec<i64>> {
     separated_list1(newline, complete::i64)(s)
 }
 
-pub fn solve_part1(input: &str) -> String {
-    let (_, list) = parse(input).unwrap();
+fn total(list: Vec<i64>, mixed: Vec<i64>) -> i64 {
+    let l = list.len();
 
+    let indexes = [1000, 2000, 3000];
+
+    let mut total = 0;
+
+    let t = mixed
+        .iter()
+        .map(|ind| list[*ind as usize])
+        .collect::<Vec<_>>();
+
+    let (zero_ind, _) = t.iter().enumerate().find(|(_, item)| **item == 0).unwrap();
+
+    for ind in &indexes {
+        total += t[(zero_ind + ind) % l]
+    }
+
+    total
+}
+
+fn mix(list: &Vec<i64>, mixed: &mut Vec<i64>) {
     let len = list.len() as i64;
-
-    let mut mixed = (0..len).collect::<Vec<_>>(); // mixed[nex_index] = original_index ;
 
     // let t = mixed
     //     .iter()
@@ -164,15 +181,16 @@ pub fn solve_part1(input: &str) -> String {
         let mut ind = ind as i64;
 
         let step = if *steps > 0 { 1 } else { -1 };
+
         //dbg!(&steps);
-        let mut remaining = steps.abs();
+
+        let mut remaining = steps.abs().rem_euclid(len - 1);
 
         while remaining > 0 {
             let next = (ind + step).rem_euclid(len);
-            if next == 0 {
+            if (ind == (len - 1) && next == 0) || ind == 0 && next == (len - 1) {
                 remaining += 1;
             }
-
             let a = mixed.remove(ind as usize);
 
             //dbg!(&ind, &next, &a);
@@ -180,6 +198,7 @@ pub fn solve_part1(input: &str) -> String {
             mixed.insert(next as usize, a);
 
             ind = next;
+
             remaining -= 1;
         }
 
@@ -190,23 +209,18 @@ pub fn solve_part1(input: &str) -> String {
 
         // println!("{:?}", t);
     }
+}
 
-    let l = list.len();
+pub fn solve_part1(input: &str) -> String {
+    let (_, list) = parse(input).unwrap();
 
-    let indexes = [1000, 2000, 3000];
+    let len = list.len() as i64;
 
-    let mut total = 0;
+    let mut mixed = (0..len).collect::<Vec<_>>(); // mixed[nex_index] = original_index ;
 
-    let t = mixed
-        .iter()
-        .map(|ind| list[*ind as usize])
-        .collect::<Vec<_>>();
+    mix(&list, &mut mixed);
 
-    let (zero_ind, _) = t.iter().enumerate().find(|(_, item)| **item == 0).unwrap();
-
-    for ind in &indexes {
-        total += t[(zero_ind + ind) % l]
-    }
+    let total = total(list, mixed);
 
     total.to_string()
 }
@@ -218,42 +232,29 @@ fn parse2(s: &str) -> IResult<&str, Vec<i64>> {
 pub fn solve_part2(input: &str) -> String {
     let (_, list) = parse2(input).unwrap();
 
-    let mut mixer = Mixer::new(&list);
+    let len = list.len() as i64;
 
-    // println!("initial list {}", mixer);
+    let mut mixed = (0..len).collect::<Vec<_>>(); // mixed[nex_index] = original_index ;
+
+    let t = mixed
+        .iter()
+        .map(|ind| list[*ind as usize])
+        .collect::<Vec<_>>();
+
+    println!("{:?}", t);
 
     for round in 0..10 {
-        println!("start of round {}", round);
-        for (ind, value) in list.iter().enumerate() {
-            mixer.mix(ind as i64, *value);
-            //println!("> mixer {}", mixer);
-        }
-        println!("> mixer {}", mixer);
-    }
-
-    let l = mixer.0.len();
-
-    //println!("{}", &mixer);
-
-    let indexes = [1000, 2000, 3000];
-
-    let mut total = 0;
-
-    let zero_item = mixer.0.iter().find(|item| item.value == 0).unwrap();
-
-    dbg!(&zero_item);
-
-    for ind in indexes {
-        let item = mixer
-            .0
+        println!("start round {} ", round);
+        mix(&list, &mut mixed);
+        let t = mixed
             .iter()
-            .find(|item| item.mixed_ind == ((zero_item.mixed_ind + ind) % l as i64))
-            .unwrap();
+            .map(|ind| list[*ind as usize])
+            .collect::<Vec<_>>();
 
-        dbg!(&item);
-
-        total += item.value;
+        println!("{:?}", t);
     }
+
+    let total = total(list, mixed);
 
     total.to_string()
 }
@@ -270,7 +271,6 @@ mod tests {
         assert_eq!(result, "3");
     }
 
-    #[ignore = "reason"]
     #[test]
     fn part2_works() {
         let result = solve_part2(INPUT);
