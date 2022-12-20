@@ -1,7 +1,7 @@
 use nom::{
     character::complete::{self, newline},
     multi::separated_list1,
-    IResult, Parser,
+    IResult,
 };
 
 fn mix(list: &Vec<i64>, mixed: &mut Vec<i64>) {
@@ -68,35 +68,25 @@ fn total(list: Vec<i64>, mixed: Vec<i64>) -> i64 {
 pub fn solve_part1(input: &str) -> String {
     let (_, list) = parse(input).unwrap();
 
-    let len = list.len() as i64;
-
-    let mut mixed = (0..len).collect::<Vec<_>>(); // mixed[nex_index] = original_index ;
+    let mut mixed = (0..list.len() as i64).collect::<Vec<i64>>(); // mixed[nex_index] = original_index ;
 
     mix(&list, &mut mixed);
 
-    let total = total(list, mixed);
-
-    total.to_string()
-}
-
-fn parse2(s: &str) -> IResult<&str, Vec<i64>> {
-    separated_list1(newline, complete::i64.map(|v| 811589153 * v))(s)
+    total(list, mixed).to_string()
 }
 
 pub fn solve_part2(input: &str) -> String {
-    let (_, list) = parse2(input).unwrap();
+    let (_, list) = parse(input).unwrap();
 
-    let len = list.len() as i64;
+    let list = list.iter().map(|v| 811589153 * v).collect::<Vec<_>>();
 
-    let mut mixed = (0..len).collect::<Vec<_>>(); // mixed[nex_index] = original_index ;
+    let mut mixed = (0..list.len() as i64).collect::<Vec<i64>>(); // mixed[nex_index] = original_index ;
 
     for _ in 0..10 {
         mix(&list, &mut mixed);
     }
 
-    let total = total(list, mixed);
-
-    total.to_string()
+    total(list, mixed).to_string()
 }
 
 #[cfg(test)]
