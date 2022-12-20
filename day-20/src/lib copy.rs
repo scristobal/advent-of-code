@@ -143,69 +143,34 @@ fn parse(s: &str) -> IResult<&str, Vec<i64>> {
 pub fn solve_part1(input: &str) -> String {
     let (_, list) = parse(input).unwrap();
 
-    let len = list.len() as i64;
+    let mut mixer = Mixer::new(&list);
 
-    let mut mixed = (0..len).collect::<Vec<_>>(); // mixed[nex_index] = original_index ;
-
-    // let t = mixed
-    //     .iter()
-    //     .map(|ind| list[*ind as usize])
-    //     .collect::<Vec<_>>();
-
-    // println!("{:?}", t);
-
-    for (ind, steps) in list.iter().enumerate() {
-        let (ind, _) = mixed
-            .iter()
-            .enumerate()
-            .find(|(_, item)| **item == ind as i64)
-            .unwrap();
-
-        let mut ind = ind as i64;
-
-        let step = if *steps > 0 { 1 } else { -1 };
-        //dbg!(&steps);
-        let mut remaining = steps.abs();
-
-        while remaining > 0 {
-            let next = (ind + step).rem_euclid(len);
-            if next == 0 {
-                remaining += 1;
-            }
-
-            let a = mixed.remove(ind as usize);
-
-            //dbg!(&ind, &next, &a);
-
-            mixed.insert(next as usize, a);
-
-            ind = next;
-            remaining -= 1;
-        }
-
-        // let t = mixed
-        //     .iter()
-        //     .map(|ind| list[*ind as usize])
-        //     .collect::<Vec<_>>();
-
-        // println!("{:?}", t);
+    for (ind, value) in list.iter().enumerate() {
+        mixer.mix(ind as i64, *value);
     }
 
-    let l = list.len();
+    let l = mixer.0.len();
+
+    //println!("{}", &mixer);
 
     let indexes = [1000, 2000, 3000];
 
     let mut total = 0;
 
-    let t = mixed
-        .iter()
-        .map(|ind| list[*ind as usize])
-        .collect::<Vec<_>>();
+    let zero_item = mixer.0.iter().find(|item| item.value == 0).unwrap();
 
-    let (zero_ind, _) = t.iter().enumerate().find(|(_, item)| **item == 0).unwrap();
+    //dbg!(&zero_item);
 
-    for ind in &indexes {
-        total += t[(zero_ind + ind) % l]
+    for ind in indexes {
+        let item = mixer
+            .0
+            .iter()
+            .find(|item| item.mixed_ind == ((zero_item.mixed_ind + ind) % l as i64))
+            .unwrap();
+
+        //dbg!(&item);
+
+        total += item.value;
     }
 
     total.to_string()
@@ -270,7 +235,6 @@ mod tests {
         assert_eq!(result, "3");
     }
 
-    #[ignore = "reason"]
     #[test]
     fn part2_works() {
         let result = solve_part2(INPUT);
