@@ -157,9 +157,8 @@ pub fn solve_part1(input: &str) -> String {
             }
         }
     }
-    dbg!(monkeys.get("humn"));
-    let root = monkeys.get_mut("root").unwrap();
 
+    let root = monkeys.get_mut("root").unwrap();
     root.compute().unwrap().to_string()
 }
 
