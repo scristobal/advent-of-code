@@ -111,77 +111,23 @@ fn parse(s: &str) -> IResult<&str, HashMap<&str, Calculation>> {
     Ok((s, monkeys.into_iter().collect()))
 }
 
-pub fn solve_part1(input: &str) -> String {
-    let (_, mut monkeys) = parse(input).unwrap();
-
-    let root = monkeys.get("root").unwrap();
-
-    let mut stack = vec![
-        Call {
-            caller: "root",
-            receiver: root.ref_a.unwrap(),
-        },
-        Call {
-            caller: "root",
-            receiver: root.ref_b.unwrap(),
-        },
-    ];
-
-    while let Some(call) = stack.pop() {
-        let Call { caller, receiver } = call;
-
-        let receiver_calc = monkeys.get_mut(receiver).unwrap();
-
-        if let Some(result) = receiver_calc.compute() {
-            let caller = monkeys.get_mut(caller).unwrap();
-
-            if caller.ref_a.unwrap() == receiver {
-                caller.a = Some(result);
-            } else {
-                caller.b = Some(result);
-            };
-        } else {
-            stack.push(Call { caller, receiver });
-
-            if receiver_calc.a.is_none() {
-                stack.push(Call {
-                    caller: receiver,
-                    receiver: receiver_calc.ref_a.unwrap(),
-                });
-            }
-            if receiver_calc.b.is_none() {
-                stack.push(Call {
-                    caller: receiver,
-                    receiver: receiver_calc.ref_b.unwrap(),
-                })
-            }
-        }
-    }
-
-    let root = monkeys.get_mut("root").unwrap();
-    root.compute().unwrap().to_string()
-}
-
 fn forward(value: f64, mut monkeys: HashMap<&str, Calculation>) -> f64 {
-    let root = monkeys.get_mut("root").unwrap();
-
-    root.operation = Sub;
-
-    let mut stack = vec![
-        Call {
-            caller: "root",
-            receiver: root.ref_a.unwrap(),
-        },
-        Call {
-            caller: "root",
-            receiver: root.ref_b.unwrap(),
-        },
-    ];
-
     let human = monkeys.get_mut("humn").unwrap();
-
     human.result = Some(value);
 
+    let root = monkeys.get_mut("root").unwrap();
+
+    let mut stack = vec![
+        Call {
+            caller: "root",
+            receiver: root.ref_a.unwrap(),
+        },
+        Call {
+            caller: "root",
+            receiver: root.ref_b.unwrap(),
+        },
+    ];
+
     while let Some(call) = stack.pop() {
         let Call { caller, receiver } = call;
 
@@ -214,27 +160,35 @@ fn forward(value: f64, mut monkeys: HashMap<&str, Calculation>) -> f64 {
     }
 
     let root = monkeys.get_mut("root").unwrap();
-
     root.compute().unwrap()
 }
 
+pub fn solve_part1(input: &str) -> String {
+    let (_, mut monkeys) = parse(input).unwrap();
+
+    let human = monkeys.get_mut("humn").unwrap();
+
+    forward(human.result.unwrap(), monkeys).to_string()
+}
+
 pub fn solve_part2(input: &str) -> String {
-    let (_, monkeys) = parse(input).unwrap();
+    let (_, mut monkeys) = parse(input).unwrap();
+
+    let root = monkeys.get_mut("root").unwrap();
+    root.operation = Sub;
 
     let mut prev = 3967.0;
-
     let mut prev_result = forward(prev, monkeys.clone());
 
     let mut value = prev + 100.0;
-
     let mut result = forward(value, monkeys.clone());
 
     while result.abs() > 1.0 {
-        let deriv = (result - prev_result) / (value - prev);
+        let derivate = (result - prev_result) / (value - prev);
 
         (prev, prev_result) = (value, result);
 
-        value -= result / deriv;
+        value -= result / derivate;
 
         result = forward(value, monkeys.clone());
     }
