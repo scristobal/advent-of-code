@@ -5,11 +5,11 @@ use nom::{
     bytes::complete::tag,
     character::complete::{self, alpha1, anychar, newline},
     multi::separated_list0,
-    sequence::{delimited, preceded, separated_pair, terminated, tuple},
+    sequence::{delimited, separated_pair, terminated, tuple},
     IResult,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum Op {
     Add,
     Sub,
@@ -32,18 +32,18 @@ impl From<char> for Op {
 
 use Op::*;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Calculation<'a> {
     operation: Op,
-    a: Option<i64>,
-    b: Option<i64>,
-    result: Option<i64>,
+    a: Option<f64>,
+    b: Option<f64>,
+    result: Option<f64>,
     ref_a: Option<&'a str>,
     ref_b: Option<&'a str>,
 }
 
 impl<'a> Calculation<'a> {
-    fn from_value(val: i64) -> Self {
+    fn from_value(val: f64) -> Self {
         Self {
             operation: Con,
             a: None,
@@ -64,7 +64,7 @@ impl<'a> Calculation<'a> {
         }
     }
 
-    fn compute(&mut self) -> Option<i64> {
+    fn compute(&mut self) -> Option<f64> {
         if self.result.is_some() {
             return self.result;
         }
@@ -91,7 +91,7 @@ struct Call<'a> {
 // eg. vtww: 3
 fn value(s: &str) -> IResult<&str, (&str, Calculation)> {
     let (s, (id, val)) = separated_pair(alpha1, tag(": "), complete::i64)(s)?;
-    Ok((s, (id, Calculation::from_value(val))))
+    Ok((s, (id, Calculation::from_value(val as f64))))
 }
 
 // eg. jzvz: hhgs + dpzm
@@ -157,15 +157,90 @@ pub fn solve_part1(input: &str) -> String {
             }
         }
     }
-
+    dbg!(monkeys.get("humn"));
     let root = monkeys.get_mut("root").unwrap();
 
     root.compute().unwrap().to_string()
 }
 
+fn forward(value: f64, mut monkeys: HashMap<&str, Calculation>) -> f64 {
+    let root = monkeys.get_mut("root").unwrap();
+
+    root.operation = Sub;
+
+    let mut stack = vec![
+        Call {
+            caller: "root",
+            receiver: root.ref_a.unwrap(),
+        },
+        Call {
+            caller: "root",
+            receiver: root.ref_b.unwrap(),
+        },
+    ];
+
+    let human = monkeys.get_mut("humn").unwrap();
+
+    human.result = Some(value);
+
+    while let Some(call) = stack.pop() {
+        let Call { caller, receiver } = call;
+
+        let receiver_calc = monkeys.get_mut(receiver).unwrap();
+
+        if let Some(result) = receiver_calc.compute() {
+            let caller = monkeys.get_mut(caller).unwrap();
+
+            if caller.ref_a.unwrap() == receiver {
+                caller.a = Some(result);
+            } else {
+                caller.b = Some(result);
+            };
+        } else {
+            stack.push(Call { caller, receiver });
+
+            if receiver_calc.a.is_none() {
+                stack.push(Call {
+                    caller: receiver,
+                    receiver: receiver_calc.ref_a.unwrap(),
+                });
+            }
+            if receiver_calc.b.is_none() {
+                stack.push(Call {
+                    caller: receiver,
+                    receiver: receiver_calc.ref_b.unwrap(),
+                })
+            }
+        }
+    }
+
+    let root = monkeys.get_mut("root").unwrap();
+
+    root.compute().unwrap()
+}
+
 pub fn solve_part2(input: &str) -> String {
-    dbg!(input);
-    todo!()
+    let (_, monkeys) = parse(input).unwrap();
+
+    let mut prev = 3967.0;
+
+    let mut prev_result = forward(prev, monkeys.clone());
+
+    let mut value = prev + 100.0;
+
+    let mut result = forward(value, monkeys.clone());
+
+    while result.abs() > 1.0 {
+        let deriv = (result - prev_result) / (value - prev);
+
+        (prev, prev_result) = (value, result);
+
+        value -= result / deriv;
+
+        result = forward(value, monkeys.clone());
+    }
+
+    value.to_string()
 }
 
 #[cfg(test)]
@@ -180,10 +255,9 @@ mod tests {
         assert_eq!(result, "152");
     }
 
-    #[ignore = "not implemented"]
     #[test]
     fn part2_works() {
         let result = solve_part2(INPUT);
-        assert_eq!(result, "");
+        assert_eq!(result, "301");
     }
 }
