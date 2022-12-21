@@ -8,11 +8,7 @@ fn mix(list: &Vec<i64>, mixed: &mut Vec<i64>) {
     let len = list.len() as i64;
 
     for (ind, steps) in list.iter().enumerate() {
-        let (ind, _) = mixed
-            .iter()
-            .enumerate()
-            .find(|(_, item)| **item == ind as i64)
-            .unwrap();
+        let ind = mixed.iter().position(|item| *item == ind as i64).unwrap();
 
         let mut ind = ind as i64;
 
@@ -56,7 +52,7 @@ fn total(list: Vec<i64>, mixed: Vec<i64>) -> i64 {
 
     let t = demix(&mixed, &list);
 
-    let (zero_ind, _) = t.iter().enumerate().find(|(_, item)| **item == 0).unwrap();
+    let zero_ind = t.iter().position(|item| *item == 0).unwrap();
 
     for ind in &indexes {
         total += t[(zero_ind + ind) % l]
