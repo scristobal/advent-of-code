@@ -66,9 +66,6 @@ impl State {
             false => self.space_wrapper(ctx),
         };
 
-        // println!("------");
-        // dbg!(&self, &wrapped, ctx.fill.get(&wrapped.position));
-
         match ctx.fill.get(&wrapped.position) {
             Some(fill) => match fill {
                 Fill::Rock => *self,
@@ -93,7 +90,7 @@ impl State {
             return test;
         }
 
-        let size = 50;
+        let size = ((ctx.fill.len() / 6_usize) as f32).sqrt() as i32;
 
         match self.facing {
             North => {
@@ -341,26 +338,15 @@ fn print(states: &[State], map: &Map) {
 
 fn moves_parser(s: &str) -> IResult<&str, Vec<Move>> {
     let (s, moves) = many1(alt((
-        complete::i32.map(|steps| (1..=steps).map(|_| Move::Forward(1)).collect()),
+        complete::i32.map(Move::Forward),
         alt((tag("R"), tag("L"))).map(|c| match c {
-            "R" => vec![Move::Right],
-            "L" => vec![Move::Left],
+            "R" => Move::Right,
+            "L" => Move::Left,
             _ => unreachable!(),
         }),
     )))(s)?;
 
-    Ok((s, moves.into_iter().flatten().collect()))
-
-    //   let (s, moves) = many1(alt((
-    //     complete::i32.map(Move::Forward),
-    //     alt((tag("R"), tag("L"))).map(|c| match c {
-    //         "R" => Move::Right,
-    //         "L" => Move::Left,
-    //         _ => unreachable!(),
-    //     }),
-    // )))(s)?;
-
-    // Ok((s, moves))
+    Ok((s, moves))
 }
 
 fn map_parser(s: &str) -> HashMap<(i32, i32), Fill> {
@@ -397,13 +383,10 @@ fn parse(s: &str, is_flat: bool) -> (Vec<Move>, Map) {
     let s = s.split("\n\n").collect::<Vec<_>>();
 
     let map = s.first().unwrap();
-
     let map = map_parser(map);
-
     let map = Map { fill: map, is_flat };
 
     let moves = *s.last().unwrap();
-
     let moves = moves_parser(moves).unwrap().1;
 
     (moves, map)
