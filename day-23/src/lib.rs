@@ -101,6 +101,8 @@ impl Map {
             .collect::<Vec<_>>();
 
         self.elfs.iter_mut().for_each(|(position, intention)| {
+            //let mut positions = self.elfs.keys();
+
             if around
                 .iter()
                 .filter_map(|(x, y)| {

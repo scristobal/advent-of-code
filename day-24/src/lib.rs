@@ -1,8 +1,8 @@
 use itertools::Itertools;
-use num::{integer::lcm, Integer};
+use num::Integer;
 use std::{
     cmp::Ordering,
-    collections::{BinaryHeap, HashMap, HashSet, VecDeque},
+    collections::{BinaryHeap, HashMap, HashSet},
 };
 
 #[derive(Debug)]
@@ -86,11 +86,14 @@ impl Valley {
                 storm_locs.insert(loc);
             }
 
-            let free_locs = self
+            let mut free_locs = self
                 .all_locs
                 .difference(&storm_locs)
                 .copied()
                 .collect::<HashSet<_>>();
+
+            free_locs.insert((0, -1));
+            free_locs.insert((self.width - 1, self.height));
 
             self.free_spots.insert(time, free_locs);
         }
@@ -107,10 +110,6 @@ impl Valley {
     }
 }
 
-fn print_grid(free_slots: HashSet<(i32, i32)>) {
-    todo!()
-}
-
 #[derive(Debug, PartialEq, Eq, Hash)]
 struct State {
     position: (i32, i32),
@@ -120,7 +119,7 @@ struct State {
 impl Ord for State {
     fn cmp(&self, other: &Self) -> Ordering {
         (15 * self.position.0 + 2 * self.position.1)
-            .cmp(&(15 * other.position.0 + 2 * self.position.1))
+            .cmp(&(15 * other.position.0 + 2 * other.position.1))
             .then_with(|| (self.time).cmp(&other.time))
     }
 }
@@ -135,23 +134,23 @@ impl State {
         let time = self.time + 1;
 
         vec![
-            State {
+            Self {
                 position: (self.position.0 + 1, self.position.1),
                 time,
             },
-            State {
+            Self {
                 position: (self.position.0, self.position.1 + 1),
                 time,
             },
-            State {
+            Self {
                 position: (self.position.0, self.position.1),
                 time,
             },
-            State {
+            Self {
                 position: (self.position.0 - 1, self.position.1),
                 time,
             },
-            State {
+            Self {
                 position: (self.position.0, self.position.1 - 1),
                 time,
             },
@@ -159,17 +158,61 @@ impl State {
     }
 }
 
-pub fn solve_part1(input: &str) -> String {
-    let valley = Valley::from(input);
+#[derive(Debug, PartialEq, Eq, Hash)]
+struct StateReversed {
+    position: (i32, i32),
+    time: i32,
+}
+
+impl Ord for StateReversed {
+    fn cmp(&self, other: &Self) -> Ordering {
+        (15 * other.position.0 + 2 * other.position.1)
+            .cmp(&(15 * self.position.0 + 2 * self.position.1))
+            .then_with(|| (self.time).cmp(&other.time))
+    }
+}
+
+impl PartialOrd for StateReversed {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+impl StateReversed {
+    fn next_states(&self) -> Vec<Self> {
+        let time = self.time + 1;
+
+        vec![
+            Self {
+                position: (self.position.0 - 1, self.position.1),
+                time,
+            },
+            Self {
+                position: (self.position.0, self.position.1 - 1),
+                time,
+            },
+            Self {
+                position: (self.position.0, self.position.1),
+                time,
+            },
+            Self {
+                position: (self.position.0 + 1, self.position.1),
+                time,
+            },
+            Self {
+                position: (self.position.0, self.position.1 + 1),
+                time,
+            },
+        ]
+    }
+}
+
+fn find_min_time_forward(start: (i32, i32), exit: (i32, i32), time: i32, valley: &Valley) -> i32 {
+    let mut min_time = i32::MAX;
 
     let initial_state = State {
-        position: (0, -1),
-        time: 0,
+        position: start,
+        time,
     };
-
-    let exit = (valley.width - 1, valley.height - 1);
-
-    let mut min_time = i32::MAX;
 
     let mut stack = BinaryHeap::from(vec![initial_state]);
     let mut visited = HashSet::new();
@@ -178,13 +221,18 @@ pub fn solve_part1(input: &str) -> String {
         if !visited.contains(&state) {
             if state.position == exit {
                 min_time = state.time.min(min_time);
-                println!("new min time {min_time}");
+                println!("> new min time {min_time}");
             } else {
                 for state in state.next_states() {
                     if valley.free_spots(state.time).contains(&state.position)
-                        && state.time + (exit.0 - state.position.0 + exit.1 - state.position.1)
+                        && state.time
+                            + ((exit.0 - state.position.0).abs()
+                                + (exit.1 - state.position.1).abs())
                             < min_time
-                    // TODO: && visited same spot on a multiple of time period
+                        && !visited.contains(&State {
+                            position: state.position,
+                            time: state.time - valley.width.lcm(&valley.height),
+                        })
                     {
                         stack.push(state);
                     }
@@ -193,13 +241,86 @@ pub fn solve_part1(input: &str) -> String {
         }
         visited.insert(state);
     }
+    min_time
+}
 
-    (min_time + 1).to_string()
+fn find_min_time_backawards(
+    start: (i32, i32),
+    exit: (i32, i32),
+    time: i32,
+    valley: &Valley,
+) -> i32 {
+    let mut min_time = i32::MAX;
+
+    let initial_state = StateReversed {
+        position: start,
+        time,
+    };
+
+    let mut stack = BinaryHeap::from(vec![initial_state]);
+    let mut visited = HashSet::new();
+
+    while let Some(state) = stack.pop() {
+        if !visited.contains(&state) {
+            if state.position == exit {
+                min_time = state.time.min(min_time);
+                println!("> new min time {min_time}");
+            } else {
+                for state in state.next_states() {
+                    if valley.free_spots(state.time).contains(&state.position)
+                        && state.time
+                            + ((exit.0 - state.position.0).abs()
+                                + (exit.1 - state.position.1).abs())
+                            < min_time
+                        && !visited.contains(&StateReversed {
+                            position: state.position,
+                            time: state.time - valley.width.lcm(&valley.height),
+                        })
+                    {
+                        stack.push(state);
+                    }
+                }
+            }
+        }
+        visited.insert(state);
+    }
+    min_time
+}
+
+pub fn solve_part1(input: &str) -> String {
+    let valley = Valley::from(input);
+
+    let start = (0, -1);
+    let exit = (valley.width - 1, valley.height);
+
+    let min_time = find_min_time_forward(start, exit, 0, &valley);
+
+    min_time.to_string()
 }
 
 pub fn solve_part2(input: &str) -> String {
-    dbg!(input);
-    todo!()
+    let valley = Valley::from(input);
+
+    let start = (0, -1);
+    let exit = (valley.width - 1, valley.height);
+
+    let time = find_min_time_forward(start, exit, 0, &valley);
+
+    println!("one way took {time}");
+
+    let start = (valley.width - 1, valley.height);
+    let exit = (0, -1);
+
+    let time = find_min_time_backawards(start, exit, time, &valley);
+
+    println!("return took {time}");
+
+    let start = (0, -1);
+    let exit = (valley.width - 1, valley.height);
+
+    let time = find_min_time_forward(start, exit, time, &valley);
+
+    time.to_string()
 }
 
 #[cfg(test)]
@@ -214,10 +335,9 @@ mod tests {
         assert_eq!(result, "18");
     }
 
-    #[ignore = "not implemented"]
     #[test]
     fn part2_works() {
         let result = solve_part2(INPUT);
-        assert_eq!(result, "");
+        assert_eq!(result, "54");
     }
 }
