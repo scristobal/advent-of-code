@@ -1,19 +1,16 @@
 fn snafu_dec(s: &str) -> i64 {
-    s.chars()
-        .rev()
-        .fold((0, 1), |acc, c| {
-            let v = match c {
-                '2' => 2,
-                '1' => 1,
-                '0' => 0,
-                '-' => -1,
-                '=' => -2,
-                _ => unreachable!(),
-            };
+    s.chars().rev().enumerate().fold(0, |acc, (i, c)| {
+        let v = match c {
+            '2' => 2,
+            '1' => 1,
+            '0' => 0,
+            '-' => -1,
+            '=' => -2,
+            _ => unreachable!(),
+        };
 
-            (v * acc.1 + acc.0, acc.1 * 5)
-        })
-        .0
+        v * 5_i64.pow(i as u32) + acc
+    })
 }
 fn dec_snafu(d: i64) -> String {
     let mut snafu = String::from("");
