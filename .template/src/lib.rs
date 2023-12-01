@@ -1,7 +1,8 @@
 /**
  * Advent of code solutions
- * by Samuel Cristobal github.com/scristobal/advent-of-code
- * Licensed under MIT
+ * by Samuel Cristobal
+ * https://github.com/scristobal/advent-of-code
+ * Licensed under MIT, 2023
  */
 
 pub fn solve_part1(input: &str) -> String {
