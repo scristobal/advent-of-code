@@ -2,3 +2,4 @@
 
 start year day:
     cp -r .template {{year}}/day-{{day}} & \
+    code {{year}}/day-{{day}}
