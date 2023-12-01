@@ -3,8 +3,8 @@
  */
 use std::cmp;
 
-pub fn solve_part1(input: &str) -> String {
-    input
+pub fn solve_part1(input: &str) -> Result<String, anyhow::Error> {
+    Ok(input
         .lines()
         .map(|line| {
             line.chars()
@@ -18,7 +18,7 @@ pub fn solve_part1(input: &str) -> String {
         })
         .map(|(a, b)| a.unwrap() * 10 + b.unwrap())
         .sum::<u32>()
-        .to_string()
+        .to_string())
 }
 
 fn literal_strings(n: u32) -> &'static str {
@@ -58,8 +58,8 @@ fn find_last(input: &str, number: u32) -> Option<usize> {
     }
 }
 
-pub fn solve_part2(input: &str) -> String {
-    input
+pub fn solve_part2(input: &str) -> Result<String, anyhow::Error> {
+    Ok(input
         .lines()
         .map(|line| {
             let mut fist_index = input.len();
@@ -91,26 +91,30 @@ pub fn solve_part2(input: &str) -> String {
         })
         .map(|(a, b)| a.unwrap() * 10 + b.unwrap())
         .sum::<u32>()
-        .to_string()
+        .to_string())
 }
 
 #[cfg(test)]
 mod tests {
+    use std::error::Error;
+
     use super::*;
 
     const INPUT1: &str = include_str!("../sample.txt");
+    const RESULT_1: &str = "142";
 
     #[test]
-    fn part1_works() {
-        let result = solve_part1(INPUT1);
-        assert_eq!(result, "142");
+    fn part1_works() -> Result<(), Box<dyn Error>> {
+        let result = solve_part1(INPUT1)?;
+        Ok(assert_eq!(result, RESULT_1))
     }
 
     const INPUT2: &str = include_str!("../sample2.txt");
+    const RESULT_2: &str = "281";
 
     #[test]
-    fn part2_works() {
-        let result = solve_part2(INPUT2);
-        assert_eq!(result, "281");
+    fn part2_works() -> Result<(), Box<dyn Error>> {
+        let result = solve_part2(INPUT2)?;
+        Ok(assert_eq!(result, RESULT_2))
     }
 }
