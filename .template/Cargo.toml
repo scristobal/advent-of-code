@@ -4,9 +4,8 @@ version = "0.0.0"
 authors = ["Samuel Crisobal"]
 edition = "2021"
 rust-version = "1.74.0"
-license-file = "../LICENSE"
+license = "MIT"
 description = "Non-competitive Advent of Code"
-readme = "../README.md"
 repository = "github.com/scristobal/advent-of-code"
 
 
