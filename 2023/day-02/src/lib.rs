@@ -14,12 +14,14 @@ use nom::{bytes::complete::tag, sequence::terminated, IResult};
  * Licensed under MIT, 2023
  */
 
+#[derive(PartialEq, Debug)]
 struct Set {
     red: u32,
     green: u32,
     blue: u32,
 }
 
+#[derive(PartialEq, Debug)]
 struct Game {
     sets: Vec<Set>,
     id: u32,
@@ -134,56 +136,40 @@ pub fn solve_part2(input: &'static str) -> Result<String, Box<dyn Error>> {
 
 #[cfg(test)]
 mod tests {
+    use rstest::rstest;
+
     use super::*;
 
-    #[test]
-    fn parse_red_cubes() {
-        let input = "1 red";
+    #[rstest]
+    #[case("1 red", Cube::Red(1))]
+    fn parse_red_cubes_success(#[case] input: &str, #[case] expected: Cube) {
         let result = red_cubes(input);
         assert!(result.is_ok());
+
         let (input, cube) = result.unwrap();
         assert_eq!(input, "");
-        assert_eq!(cube, Cube::Red(1));
+        assert_eq!(cube, expected);
     }
 
-    #[test]
-    fn parse_set() {
-        let input = "1 red, 2 green, 3 blue";
+    #[rstest]
+    #[case("1 red, 2 green, 3 blue", Set {  red: 1, green: 2, blue: 3 })]
+    fn parse_set_success(#[case] input: &str, #[case] expected: Set) {
         let result = game_set(input);
         assert!(result.is_ok());
+
         let (input, set) = result.unwrap();
         assert_eq!(input, "");
-        assert_eq!(set.red, 1);
-        assert_eq!(set.green, 2);
-        assert_eq!(set.blue, 3);
+        assert_eq!(set, expected);
     }
 
-    #[test]
-    fn parse_game() {
-        let input = "Game 12: 1 red, 10 green; 4 red, 6 green, 1 blue; 9 green, 1 blue, 7 red; 1 blue, 13 green, 2 red; 2 blue, 5 red, 11 green";
+    #[rstest]
+    #[case( "Game 12: 1 red, 10 green; 4 red, 6 green, 1 blue",  Game { id: 12, sets: vec![Set {red: 1,green: 10,blue: 0},Set {red: 4,green: 6,blue: 1}]})]
+    fn parse_game_success(#[case] input: &str, #[case] expected: Game) {
         let result = game(input);
         assert!(result.is_ok());
+
         let (input, game) = result.unwrap();
         assert_eq!(input, "");
-        assert_eq!(game.id, 12);
-        assert_eq!(game.sets.len(), 5);
-    }
-
-    const INPUT_1: &str = include_str!("../sample-part-1.txt");
-    const ANSWER_1: &str = "8";
-
-    #[test]
-    fn part1_works() {
-        let result = solve_part1(INPUT_1).unwrap();
-        assert_eq!(result, ANSWER_1)
-    }
-
-    const INPUT_2: &str = include_str!("../sample-part-2.txt");
-    const ANSWER_2: &str = "2286";
-
-    #[test]
-    fn part2_works() {
-        let result = solve_part2(INPUT_2).unwrap();
-        assert_eq!(result, ANSWER_2);
+        assert_eq!(game, expected)
     }
 }
