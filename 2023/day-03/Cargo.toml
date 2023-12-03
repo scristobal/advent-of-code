@@ -13,14 +13,19 @@ repository = "github.com/scristobal/advent-of-code"
 
 [dependencies]
 anyhow = "1.0.75"
-divan = "0.1.3"
 itertools = "0.12.0"
 nom = "7.1.3"
 
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }
+divan = "0.1.3"
+
 
 [[bench]]
-name = "all"
+name = "divan"
+harness = false
+
+[[bench]]
+name = "criterion"
 harness = false
