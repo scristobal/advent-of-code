@@ -48,43 +48,27 @@ fn parse_input(input: &str) -> (Numbers, Symbols) {
     (res.0, res.1)
 }
 
-fn adjacent(width: usize) -> Box<dyn Fn(usize) -> Vec<usize>> {
+fn adjacent(width: usize) -> Box<dyn Fn(usize) -> [Option<usize>; 8]> {
     Box::new(move |i| {
-        let mut res = vec![];
+        let mut res = [None; 8];
 
         // left
-        if i % width != 0 {
-            res.push(i - 1);
-        }
+        res[0] = (i % width != 0).then_some(i - 1);
         // right
-        if i % width != width - 1 {
-            res.push(i + 1);
-        }
+        res[1] = (i % width != width - 1).then_some(i + 1);
         // up
-        if i >= width {
-            res.push(i - width);
-        }
+        res[2] = (i >= width).then_some(i - width);
         // down
-        if i < width * (width - 1) {
-            res.push(i + width);
-        }
-
+        res[3] = (i < width * (width - 1)).then_some(i + width);
         // up, left
-        if i % width != 0 && i >= width {
-            res.push(i - width - 1);
-        }
+        res[4] = (i % width != 0 && i >= width).then_some(i - width - 1);
         // up, right
-        if i % width != width - 1 && i >= width {
-            res.push(i - width + 1);
-        }
+        res[5] = (i % width != width - 1 && i >= width).then_some(i - width + 1);
         // down, left
-        if i % width != 0 && i < width * (width - 1) {
-            res.push(i + width - 1);
-        }
+        res[6] = (i % width != 0 && i < width * (width - 1)).then_some(i + width - 1);
         // down, right
-        if i % width != width - 1 && i < width * (width - 1) {
-            res.push(i + width + 1);
-        }
+        res[7] = (i % width != width - 1 && i < width * (width - 1)).then_some(i + width + 1);
+
         res
     })
 }
@@ -103,6 +87,7 @@ pub fn solve_part1(input: &str) -> Result<String, anyhow::Error> {
             symbols
                 .iter()
                 .flat_map(|&symbol| adjacent_fn(symbol))
+                .flatten()
                 .any(|adj| (number.start <= adj) && (adj <= number.end))
                 .then_some(number.value)
         })
@@ -127,6 +112,7 @@ pub fn solve_part2(input: &str) -> Result<String, anyhow::Error> {
             let adjacents_parts = numbers.iter().filter(|number| {
                 adjacents
                     .iter()
+                    .flatten()
                     .any(|&adj| (number.start <= adj) && (adj <= number.end))
             });
 
@@ -138,6 +124,7 @@ pub fn solve_part2(input: &str) -> Result<String, anyhow::Error> {
                 .filter_map(|number| {
                     adjacents
                         .iter()
+                        .flatten()
                         .any(|&adj| (number.start <= adj) && (adj <= number.end))
                         .then_some(number.value)
                 })
