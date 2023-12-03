@@ -52,30 +52,36 @@ fn adjacent(width: usize) -> Box<dyn Fn(usize) -> Vec<usize>> {
     Box::new(move |i| {
         let mut res = vec![];
 
-        // cross
+        // left
         if i % width != 0 {
             res.push(i - 1);
         }
+        // right
         if i % width != width - 1 {
             res.push(i + 1);
         }
+        // up
         if i >= width {
             res.push(i - width);
         }
+        // down
         if i < width * (width - 1) {
             res.push(i + width);
         }
 
-        // diagonals
+        // up, left
         if i % width != 0 && i >= width {
             res.push(i - width - 1);
         }
+        // up, right
         if i % width != width - 1 && i >= width {
             res.push(i - width + 1);
         }
+        // down, left
         if i % width != 0 && i < width * (width - 1) {
             res.push(i + width - 1);
         }
+        // down, right
         if i % width != width - 1 && i < width * (width - 1) {
             res.push(i + width + 1);
         }
