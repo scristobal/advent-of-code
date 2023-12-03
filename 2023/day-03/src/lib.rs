@@ -21,19 +21,16 @@ fn parse_input(input: &str) -> (Numbers, Symbols) {
         |(mut numbers, mut symbols, mut partial_number), (i, c)| {
             if c.is_numeric() {
                 let digit = c.to_digit(10).unwrap();
-                match partial_number {
+                partial_number = match partial_number {
                     Some(mut number) => {
-                        let value = digit + number.value * 10;
-                        number.value = value;
-                        partial_number = Some(number);
+                        number.value = digit + number.value * 10;
+                        Some(number)
                     }
-                    None => {
-                        partial_number = Some(Number {
-                            value: digit,
-                            start: i,
-                            end: i,
-                        });
-                    }
+                    None => Some(Number {
+                        value: digit,
+                        start: i,
+                        end: i,
+                    }),
                 }
             } else {
                 if let Some(mut number) = partial_number {
@@ -94,18 +91,17 @@ pub fn solve_part1(input: &str) -> Result<String, anyhow::Error> {
 
     let adjacent_fn = adjacent(width);
 
-    let part_numbers = numbers
+    Ok(numbers
         .iter()
-        .filter(|&number| {
+        .filter_map(|number| {
             symbols
                 .iter()
                 .flat_map(|&symbol| adjacent_fn(symbol))
                 .any(|adj| (number.start <= adj) && (adj <= number.end))
+                .then_some(number.value)
         })
-        .map(|number| number.value)
-        .sum::<u32>();
-
-    Ok(format!("{}", part_numbers))
+        .sum::<u32>()
+        .to_string())
 }
 
 pub fn solve_part2(input: &str) -> Result<String, anyhow::Error> {
@@ -116,7 +112,7 @@ pub fn solve_part2(input: &str) -> Result<String, anyhow::Error> {
 
     let adjacent_fn = adjacent(width);
 
-    let gear_symbols = input
+    Ok(input
         .chars()
         .enumerate()
         .filter_map(|(i, c)| {
@@ -128,11 +124,7 @@ pub fn solve_part2(input: &str) -> Result<String, anyhow::Error> {
                     .any(|&adj| (number.start <= adj) && (adj <= number.end))
             });
 
-            if c == '*' && adjacents_parts.count() == 2 {
-                Some(adjacents)
-            } else {
-                None
-            }
+            (c == '*' && adjacents_parts.count() == 2).then_some(adjacents)
         })
         .map(|adjacents| {
             numbers
@@ -143,11 +135,10 @@ pub fn solve_part2(input: &str) -> Result<String, anyhow::Error> {
                         .any(|&adj| (number.start <= adj) && (adj <= number.end))
                 })
                 .map(|number| number.value)
-                .product()
+                .product::<u32>()
         })
-        .collect::<Vec<u32>>();
-
-    Ok(format!("{}", gear_symbols.iter().sum::<u32>()))
+        .sum::<u32>()
+        .to_string())
 }
 
 #[cfg(test)]
