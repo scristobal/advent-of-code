@@ -1,8 +1,7 @@
-/**
+/*
  * Advent of code solutions
- * by Samuel Cristobal
- * https://github.com/scristobal/advent-of-code
- * Licensed under MIT, 2023
+ * https://www.github.com/scristobal/advent-of-code
+ * Licensed under MIT, 2023 Samuel Cristobal
  */
 
 pub fn solve_part1(input: &str) -> Result<String, anyhow::Error> {
@@ -19,8 +18,19 @@ pub fn solve_part2(input: &str) -> Result<String, anyhow::Error> {
 mod tests {
     use super::*;
 
+    const SAMPLE: &str = include_str!("../sample.txt");
+
+    #[ignore = "not implemented"]
     #[test]
-    fn sample_test() {
-        todo!()
+    fn part1_works() {
+        let result = solve_part1(SAMPLE).unwrap();
+        assert_eq!(result, "");
+    }
+
+    #[ignore = "not implemented"]
+    #[test]
+    fn part2_works() {
+        let result = solve_part2(SAMPLE).unwrap();
+        assert_eq!(result, "");
     }
 }
