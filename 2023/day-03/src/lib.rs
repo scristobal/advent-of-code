@@ -129,12 +129,12 @@ pub fn solve_part2(input: &str) -> Result<String, anyhow::Error> {
         .map(|adjacents| {
             numbers
                 .iter()
-                .filter(|&number| {
+                .filter_map(|number| {
                     adjacents
                         .iter()
                         .any(|&adj| (number.start <= adj) && (adj <= number.end))
+                        .then_some(number.value)
                 })
-                .map(|number| number.value)
                 .product::<u32>()
         })
         .sum::<u32>()
