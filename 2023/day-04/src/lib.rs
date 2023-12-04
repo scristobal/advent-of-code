@@ -4,23 +4,25 @@
  * Licensed under MIT, 2023 Samuel Cristobal
  */
 
+use std::collections::HashSet;
+
 use nom::branch::alt;
-use nom::character::complete::line_ending;
+use nom::character::complete::{line_ending, space0};
 use nom::combinator::eof;
-use nom::multi::many0;
+use nom::multi::{fold_many0, many0};
 use nom::sequence::{delimited, separated_pair, terminated};
 use nom::{bytes::complete::tag, character::complete::u8, sequence::tuple, IResult};
 
 #[derive(PartialEq, Debug, Clone)]
 struct Card {
     id: usize,
-    winners: Vec<u8>,
-    played: Vec<u8>,
+    winners: HashSet<u8>,
+    played: HashSet<u8>,
 }
 
 // eg, "  39 "
 fn parse_num(input: &str) -> IResult<&str, u8> {
-    delimited(many0(tag(" ")), u8, many0(tag(" ")))(input)
+    delimited(space0, u8, space0)(input)
 }
 
 // eg. "Card  11:"
@@ -29,12 +31,15 @@ fn parse_card_id(input: &str) -> IResult<&str, u8> {
 }
 
 // eg.  "  41 92  3 84 69 ""
-fn parse_sequence(input: &str) -> IResult<&str, Vec<u8>> {
-    many0(parse_num)(input)
+fn parse_sequence(input: &str) -> IResult<&str, HashSet<u8>> {
+    fold_many0(parse_num, HashSet::new, |mut acc, item| {
+        acc.insert(item);
+        acc
+    })(input)
 }
 
 // eg. "  41 48 83 86 17 | 83 86  6 31 17  9 48 53 "
-fn parse_winners_and_played(input: &str) -> IResult<&str, (Vec<u8>, Vec<u8>)> {
+fn parse_winners_and_played(input: &str) -> IResult<&str, (HashSet<u8>, HashSet<u8>)> {
     separated_pair(parse_sequence, tag("|"), parse_sequence)(input)
 }
 
@@ -66,12 +71,7 @@ pub fn solve_part1(input: &'static str) -> Result<String, anyhow::Error> {
 
     let score = cards
         .iter()
-        .map(|card| {
-            card.played
-                .iter()
-                .filter(|&played| card.winners.contains(played))
-                .count()
-        })
+        .map(|card| card.played.intersection(&card.winners).count())
         .filter(|&matches| (matches > 0))
         .map(|matches| 1 << (matches - 1))
         .sum::<u32>();
@@ -86,12 +86,7 @@ pub fn solve_part2(input: &'static str) -> Result<String, anyhow::Error> {
 
     let matches = cards
         .iter()
-        .map(|card| {
-            card.played
-                .iter()
-                .filter(|&played| card.winners.contains(played))
-                .count()
-        })
+        .map(|card| card.played.intersection(&card.winners).count())
         .collect::<Vec<_>>();
 
     let mut num_cards = matches.iter().map(|_| 1).collect::<Vec<_>>();
@@ -114,7 +109,7 @@ mod tests {
     #[test]
     fn parse_sequence_works() {
         let result = parse_sequence("41 92  3 84 69");
-        assert_eq!(result, Ok(("", vec![41, 92, 3, 84, 69])));
+        assert_eq!(result, Ok(("", [41, 92, 3, 84, 69].into())));
     }
 
     #[test]
@@ -126,8 +121,8 @@ mod tests {
                 "",
                 Card {
                     id: 1,
-                    winners: vec![41, 48, 83, 86, 17],
-                    played: vec![83, 86, 6, 31, 17, 9, 48, 53],
+                    winners: [41, 48, 83, 86, 17].into(),
+                    played: [83, 86, 6, 31, 17, 9, 48, 53].into(),
                 }
             ))
         );
@@ -147,18 +142,18 @@ Card 3: 13 32 20 16 61 | 61 30 68 82 17 32 24 19",
                 vec![
                     Card {
                         id: 1,
-                        winners: vec![41, 92, 73, 84, 69],
-                        played: vec![7, 8, 1, 2, 3, 4, 5, 6],
+                        winners: [41, 92, 73, 84, 69].into(),
+                        played: [7, 8, 1, 2, 3, 4, 5, 6].into(),
                     },
                     Card {
                         id: 2,
-                        winners: vec![13, 32, 20, 16, 61],
-                        played: vec![61, 30, 68, 82, 17, 32, 24, 19],
+                        winners: [13, 32, 20, 16, 61].into(),
+                        played: [61, 30, 68, 82, 17, 32, 24, 19].into(),
                     },
                     Card {
                         id: 3,
-                        winners: vec![13, 32, 20, 16, 61],
-                        played: vec![61, 30, 68, 82, 17, 32, 24, 19],
+                        winners: [13, 32, 20, 16, 61].into(),
+                        played: [61, 30, 68, 82, 17, 32, 24, 19].into(),
                     }
                 ]
             ))
