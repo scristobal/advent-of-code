@@ -4,12 +4,12 @@
  * Licensed under MIT, 2023 Samuel Cristobal
  */
 
-pub fn solve_part1(input: &str) -> Result<String, anyhow::Error> {
+pub fn solve_part1(input: &'static str) -> Result<String, anyhow::Error> {
     dbg!(input);
     todo!()
 }
 
-pub fn solve_part2(input: &str) -> Result<String, anyhow::Error> {
+pub fn solve_part2(input: &'static str) -> Result<String, anyhow::Error> {
     dbg!(input);
     todo!()
 }
