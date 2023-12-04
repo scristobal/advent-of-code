@@ -11,6 +11,7 @@ use nom::character::complete::{line_ending, space0};
 use nom::combinator::eof;
 use nom::multi::{fold_many0, many0};
 use nom::sequence::{delimited, separated_pair, terminated};
+use nom::Parser;
 use nom::{bytes::complete::tag, character::complete::u8, sequence::tuple, IResult};
 
 #[derive(PartialEq, Debug, Clone)]
@@ -45,18 +46,16 @@ fn parse_winners_and_played(input: &str) -> IResult<&str, (HashSet<u8>, HashSet<
 
 // eg. "Card 1: 41 48 83 86 17 | 83 86  6 31 17  9 48 53"
 fn parse_card(input: &str) -> IResult<&str, Card> {
-    let (input, (id, (winners, played))) = terminated(
+    terminated(
         tuple((parse_card_id, parse_winners_and_played)),
         alt((line_ending, eof)),
-    )(input)?;
-
-    let card = Card {
+    )
+    .map(|(id, (winners, played))| Card {
         id: id as usize,
         winners,
         played,
-    };
-
-    Ok((input, card))
+    })
+    .parse(input)
 }
 
 // eg. "Card  1: 41 92 73 84 69 | 7  8  1  2  3  4  5  6\nCard 2: 13 32 20 16 61 | 61 30 68 82 17 32 24 19\nCard 3: 13 32 20 16 61 | 61 30 68 82 17 32 24 19 "
@@ -114,50 +113,45 @@ mod tests {
 
     #[test]
     fn parse_card_works() {
-        let result = parse_card("Card 1: 41 48 83 86 17 | 83 86  6 31 17  9 48 53");
-        assert_eq!(
-            result,
-            Ok((
-                "",
-                Card {
-                    id: 1,
-                    winners: [41, 48, 83, 86, 17].into(),
-                    played: [83, 86, 6, 31, 17, 9, 48, 53].into(),
-                }
-            ))
-        );
+        let (_, result) = parse_card("Card 1: 41 48 83 86 17 | 83 86  6 31 17  9 48 53").unwrap();
+
+        let card = Card {
+            id: 1,
+            winners: [41, 48, 83, 86, 17].into(),
+            played: [83, 86, 6, 31, 17, 9, 48, 53].into(),
+        };
+
+        assert_eq!(result, card);
     }
 
     #[test]
     fn parse_input_works() {
-        let result = parse_input(
+        let (_, result) = parse_input(
             "Card 1: 41 92 73 84 69 | 7  8  1  2  3  4  5  6
 Card 2: 13 32 20 16 61 | 61 30 68 82 17 32 24 19
 Card 3: 13 32 20 16 61 | 61 30 68 82 17 32 24 19",
-        );
-        assert_eq!(
-            result,
-            Ok((
-                "",
-                vec![
-                    Card {
-                        id: 1,
-                        winners: [41, 92, 73, 84, 69].into(),
-                        played: [7, 8, 1, 2, 3, 4, 5, 6].into(),
-                    },
-                    Card {
-                        id: 2,
-                        winners: [13, 32, 20, 16, 61].into(),
-                        played: [61, 30, 68, 82, 17, 32, 24, 19].into(),
-                    },
-                    Card {
-                        id: 3,
-                        winners: [13, 32, 20, 16, 61].into(),
-                        played: [61, 30, 68, 82, 17, 32, 24, 19].into(),
-                    }
-                ]
-            ))
-        );
+        )
+        .unwrap();
+
+        let cards = vec![
+            Card {
+                id: 1,
+                winners: [41, 92, 73, 84, 69].into(),
+                played: [7, 8, 1, 2, 3, 4, 5, 6].into(),
+            },
+            Card {
+                id: 2,
+                winners: [13, 32, 20, 16, 61].into(),
+                played: [61, 30, 68, 82, 17, 32, 24, 19].into(),
+            },
+            Card {
+                id: 3,
+                winners: [13, 32, 20, 16, 61].into(),
+                played: [61, 30, 68, 82, 17, 32, 24, 19].into(),
+            },
+        ];
+
+        assert_eq!(result, cards);
     }
 
     #[test]
