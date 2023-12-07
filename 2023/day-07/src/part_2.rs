@@ -4,8 +4,25 @@
  * Licensed under MIT, 2023 Samuel Cristobal
  */
 
-#[derive(Debug, Eq)]
-struct Set([char; 5]);
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Copy, Clone)]
+enum Card {
+    Joker,
+    Two,
+    Three,
+    Four,
+    Five,
+    Six,
+    Seven,
+    Eight,
+    Nine,
+    Ten,
+    Queen,
+    King,
+    Ace,
+}
+
+#[derive(Debug, Eq, PartialEq, PartialOrd, Ord)]
+struct Set([Card; 5]);
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 enum Hand {
@@ -26,30 +43,53 @@ struct Play {
 
 impl Hand {
     fn from(cards: [char; 5]) -> Self {
+        let cards = cards
+            .iter()
+            .map(|&ch| match ch {
+                'J' => Card::Joker,
+                '2' => Card::Two,
+                '3' => Card::Three,
+                '4' => Card::Four,
+                '5' => Card::Five,
+                '6' => Card::Six,
+                '7' => Card::Seven,
+                '8' => Card::Eight,
+                '9' => Card::Nine,
+                'T' => Card::Ten,
+                'Q' => Card::Queen,
+                'K' => Card::King,
+                'A' => Card::Ace,
+                c => unreachable!("Unexpected card: {:?}", c),
+            })
+            .collect::<Vec<Card>>();
+
+        let cards = [cards[0], cards[1], cards[2], cards[3], cards[4]];
+
         let mut counts = [0; 12];
         let mut jokers = 0;
 
         for card in cards.iter().filter_map(|&ch| match ch {
-            'J' => {
+            Card::Joker => {
                 jokers += 1;
                 None
             }
             _ => Some(ch),
         }) {
             let index = match card {
-                '2' => 0,
-                '3' => 1,
-                '4' => 2,
-                '5' => 3,
-                '6' => 4,
-                '7' => 5,
-                '8' => 6,
-                '9' => 7,
-                'T' => 8,
-                'Q' => 9,
-                'K' => 10,
-                'A' => 11,
-                c => unreachable!("Unexpected card: {}", c),
+                Card::Two => 0,
+                Card::Three => 1,
+                Card::Four => 2,
+                Card::Five => 3,
+                Card::Six => 4,
+                Card::Seven => 5,
+                Card::Eight => 6,
+                Card::Nine => 7,
+                Card::Ten => 8,
+                Card::Queen => 9,
+                Card::King => 10,
+                Card::Ace => 11,
+
+                c => unreachable!("Unexpected card: {:?}", c),
             };
 
             counts[index] += 1;
@@ -79,38 +119,6 @@ impl Play {
             hand: Hand::from(cards),
             bid,
         }
-    }
-}
-
-impl PartialEq for Set {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-
-impl Ord for Set {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        let order = [
-            'J', '2', '3', '4', '5', '6', '7', '8', '9', 'T', 'Q', 'K', 'A',
-        ];
-
-        for (self_card, other_card) in self.0.iter().zip(other.0.iter()) {
-            let self_index = order.iter().position(|&c| c == *self_card).unwrap();
-            let other_index = order.iter().position(|&c| c == *other_card).unwrap();
-
-            match self_index.cmp(&other_index) {
-                std::cmp::Ordering::Equal => continue,
-                other => return other,
-            }
-        }
-
-        std::cmp::Ordering::Equal
-    }
-}
-
-impl PartialOrd for Set {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
     }
 }
 
@@ -148,10 +156,10 @@ mod tests {
     use super::*;
 
     const SAMPLE: &str = "32T3K 765
- T55J5 684
- KK677 28
- KTJJT 220
- QQQJA 483";
+  T55J5 684
+  KK677 28
+  KTJJT 220
+  QQQJA 483";
 
     #[test]
     fn parse_sample() {
@@ -159,23 +167,53 @@ mod tests {
 
         let game = vec![
             Play {
-                hand: Hand::OnePair(Set(['3', '2', 'T', '3', 'K'])),
+                hand: Hand::OnePair(Set([
+                    Card::Three,
+                    Card::Two,
+                    Card::Ten,
+                    Card::Three,
+                    Card::King,
+                ])),
                 bid: 765,
             },
             Play {
-                hand: Hand::FourOfAKind(Set(['T', '5', '5', 'J', '5'])),
+                hand: Hand::FourOfAKind(Set([
+                    Card::Ten,
+                    Card::Five,
+                    Card::Five,
+                    Card::Joker,
+                    Card::Five,
+                ])),
                 bid: 684,
             },
             Play {
-                hand: Hand::TwoPair(Set(['K', 'K', '6', '7', '7'])),
+                hand: Hand::TwoPair(Set([
+                    Card::King,
+                    Card::King,
+                    Card::Six,
+                    Card::Seven,
+                    Card::Seven,
+                ])),
                 bid: 28,
             },
             Play {
-                hand: Hand::FourOfAKind(Set(['K', 'T', 'J', 'J', 'T'])),
+                hand: Hand::FourOfAKind(Set([
+                    Card::King,
+                    Card::Ten,
+                    Card::Joker,
+                    Card::Joker,
+                    Card::Ten,
+                ])),
                 bid: 220,
             },
             Play {
-                hand: Hand::FourOfAKind(Set(['Q', 'Q', 'Q', 'J', 'A'])),
+                hand: Hand::FourOfAKind(Set([
+                    Card::Queen,
+                    Card::Queen,
+                    Card::Queen,
+                    Card::Joker,
+                    Card::Ace,
+                ])),
                 bid: 483,
             },
         ];
