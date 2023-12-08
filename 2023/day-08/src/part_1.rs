@@ -71,16 +71,22 @@ pub fn solve(input: &'static str) -> Result<String, anyhow::Error> {
     let (directions, right, left) = parse_input(input);
 
     let mut current_node = ['A'; 3];
-    let mut steps = 0;
 
-    while current_node != ['Z'; 3] {
-        current_node = match directions[steps % directions.len()] {
-            Direction::Left => *left.get(&current_node).unwrap(),
-            Direction::Right => *right.get(&current_node).unwrap(),
-        };
+    let Some(steps) = directions
+        .iter()
+        .cycle()
+        .enumerate()
+        .find_map(|(index, direction)| {
+            current_node = match direction {
+                Direction::Left => *left.get(&current_node).unwrap(),
+                Direction::Right => *right.get(&current_node).unwrap(),
+            };
+            (current_node == ['Z'; 3]).then_some(index + 1)
+        })
+    else {
+        unreachable!()
+    };
 
-        steps += 1;
-    }
     Ok(steps.to_string())
 }
 

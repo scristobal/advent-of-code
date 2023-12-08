@@ -76,31 +76,29 @@ fn parse_input(input: &'static str) -> (Vec<Direction>, Vec<Node>, RightTurns, L
 pub fn solve(input: &'static str) -> Result<String, anyhow::Error> {
     let (directions, mut nodes, right, left) = parse_input(input);
 
-    let periods = nodes
+    let steps = nodes
         .iter_mut()
-        .map(|node| {
-            let mut steps = 0;
+        .filter_map(|node| {
             let mut visited = HashMap::new();
 
-            loop {
-                let index = steps % directions.len();
+            directions.iter().enumerate().cycle().enumerate().find_map(
+                |(steps, (index, direction))| {
+                    *node = match direction {
+                        Direction::Left => *left.get(node).unwrap(),
+                        Direction::Right => *right.get(node).unwrap(),
+                    };
 
-                *node = match directions[index] {
-                    Direction::Left => *left.get(node).unwrap(),
-                    Direction::Right => *right.get(node).unwrap(),
-                };
-
-                steps += 1;
-
-                match visited.get(&(*node, index)) {
-                    Some(prev_steps) => return steps - *prev_steps,
-                    None => visited.insert((*node, index), steps),
-                };
-            }
+                    match visited.get(&(*node, index)) {
+                        Some(prev_steps) => Some(steps - *prev_steps),
+                        None => {
+                            visited.insert((*node, index), steps);
+                            None
+                        }
+                    }
+                },
+            )
         })
-        .collect::<Vec<_>>();
-
-    let steps = periods.iter().fold(1, |acc, &x| integer::lcm(acc, x));
+        .fold(1, integer::lcm);
 
     Ok(steps.to_string())
 }
