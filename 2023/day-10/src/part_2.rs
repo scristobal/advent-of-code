@@ -9,33 +9,9 @@ use std::{fmt::Display, str::FromStr};
 use anyhow::Error;
 use itertools::Itertools;
 
-#[derive(PartialEq, Debug, Copy, Clone)]
-enum Pipe {
-    Vertical,
-    Horizontal,
-    NorthEast,
-    NorthWest,
-    SouthEast,
-    SouthWest,
-    Ground,
-    Inside,
-    Outside,
-    Start,
-    Border,
-    Main,
-}
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-enum Direction {
-    North,
-    South,
-    East,
-    West,
-}
-
 #[derive(Debug)]
 struct Grid {
-    pipes: Vec<Pipe>,
+    pipes: Vec<char>,
     width: usize,
 }
 
@@ -45,28 +21,13 @@ impl FromStr for Grid {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let width = s.lines().next().unwrap().len() + 2;
 
-        let mut s = s.replace('\n', "BB");
+        let mut s = s.replace('\n', "  ");
 
-        s.push_str(&"B".repeat(width + 1));
+        s.push_str(&" ".repeat(width + 1));
 
-        s.insert_str(0, &"B".repeat(width + 1));
+        s.insert_str(0, &" ".repeat(width + 1));
 
-        let pipes = s
-            .chars()
-            .map(|c| match c {
-                '|' => Pipe::Vertical,
-                '-' => Pipe::Horizontal,
-                'L' => Pipe::NorthEast,
-                'J' => Pipe::NorthWest,
-                '7' => Pipe::SouthWest,
-                'F' => Pipe::SouthEast,
-                '.' => Pipe::Ground,
-                'S' => Pipe::Start,
-                'B' => Pipe::Border,
-
-                _ => panic!("Invalid character"),
-            })
-            .collect_vec();
+        let pipes = s.replace('\n', "").chars().collect_vec();
 
         Ok(Grid { pipes, width })
     }
@@ -81,22 +42,19 @@ impl Display for Grid {
                 s.push('\n');
             }
 
-            let c = match pipe {
-                Pipe::Vertical => '|',
-                Pipe::Horizontal => '-',
-                Pipe::NorthEast => 'L',
-                Pipe::NorthWest => 'J',
-                Pipe::SouthEast => 'F',
-                Pipe::SouthWest => '7',
-                Pipe::Ground => '.',
-                Pipe::Inside => 'I',
-                Pipe::Outside => 'O',
-                Pipe::Start => 'S',
-                Pipe::Border => ' ',
-                Pipe::Main => '*',
+            let ch = match pipe {
+                'F' => '┌',
+                'L' => '└',
+                'J' => '┘',
+                '7' => '┐',
+                'S' => 'S',
+                'I' => 'I',
+                '*' => '*',
+                '.' => '·',
+                _ => *pipe,
             };
 
-            s.push(c);
+            s.push(ch);
         }
 
         write!(f, "{}", s)
@@ -106,7 +64,7 @@ impl Display for Grid {
 #[derive(Debug, PartialEq, Eq, Clone)]
 struct State {
     position: usize,
-    direction: Direction,
+    direction: char,
 }
 
 impl Grid {
@@ -115,7 +73,7 @@ impl Grid {
             .pipes
             .iter()
             .enumerate()
-            .find(|(_, p)| **p == Pipe::Start)
+            .find(|(_, p)| **p == 'S')
             .unwrap()
             .0;
 
@@ -124,20 +82,14 @@ impl Grid {
         let north = &self.pipes[position - self.width];
         let south = &self.pipes[position + self.width];
 
-        let direction = if *east == Pipe::Horizontal
-            || *east == Pipe::NorthWest
-            || *east == Pipe::SouthWest
-        {
-            Direction::East
-        } else if *west == Pipe::Horizontal || *west == Pipe::NorthEast || *west == Pipe::SouthEast
-        {
-            Direction::West
-        } else if *north == Pipe::Vertical || *north == Pipe::SouthEast || *north == Pipe::SouthWest
-        {
-            Direction::North
-        } else if *south == Pipe::Vertical || *south == Pipe::NorthEast || *south == Pipe::NorthWest
-        {
-            Direction::South
+        let direction = if *east == '-' || *east == 'J' || *east == '7' {
+            'e'
+        } else if *west == '-' || *west == 'L' || *west == 'F' {
+            'w'
+        } else if *north == '|' || *north == 'F' || *north == '7' {
+            'n'
+        } else if *south == '|' || *south == 'L' || *south == 'J' {
+            's'
         } else {
             panic!("Invalid start position");
         };
@@ -150,32 +102,33 @@ impl Grid {
 
     fn next_state(&self, state: State) -> Option<State> {
         let next_position = match state.direction {
-            Direction::North => state.position - self.width,
-            Direction::South => state.position + self.width,
-            Direction::East => state.position + 1,
-            Direction::West => state.position - 1,
+            'n' => state.position - self.width,
+            's' => state.position + self.width,
+            'e' => state.position + 1,
+            'w' => state.position - 1,
+            ch => unreachable!("Invalid direction {}", ch),
         };
 
         let next_pipe = &self.pipes[next_position];
 
         let next_direction = match (state.direction, next_pipe) {
-            (Direction::North, Pipe::Vertical) => Direction::North,
-            (Direction::North, Pipe::SouthEast) => Direction::East,
-            (Direction::North, Pipe::SouthWest) => Direction::West,
+            ('n', '|') => 'n',
+            ('n', 'F') => 'e',
+            ('n', '7') => 'w',
 
-            (Direction::South, Pipe::Vertical) => Direction::South,
-            (Direction::South, Pipe::NorthEast) => Direction::East,
-            (Direction::South, Pipe::NorthWest) => Direction::West,
+            ('s', '|') => 's',
+            ('s', 'L') => 'e',
+            ('s', 'J') => 'w',
 
-            (Direction::East, Pipe::Horizontal) => Direction::East,
-            (Direction::East, Pipe::NorthWest) => Direction::North,
-            (Direction::East, Pipe::SouthWest) => Direction::South,
+            ('e', '-') => 'e',
+            ('e', 'J') => 'n',
+            ('e', '7') => 's',
 
-            (Direction::West, Pipe::Horizontal) => Direction::West,
-            (Direction::West, Pipe::NorthEast) => Direction::North,
-            (Direction::West, Pipe::SouthEast) => Direction::South,
+            ('w', '-') => 'w',
+            ('w', 'L') => 'n',
+            ('w', 'F') => 's',
 
-            (_, Pipe::Start) => return None,
+            (_, 'S') => return None,
             (d, p) => panic!("Invalid state {:?} and pipe {:?} combination", d, p),
         };
 
@@ -192,116 +145,116 @@ impl Grid {
             .collect_vec();
 
         for (i, pipe) in self.pipes.iter_mut().enumerate() {
-            if !main_loop.contains(&&i) && *pipe != Pipe::Border {
-                *pipe = Pipe::Ground;
+            if !main_loop.contains(&&i) && *pipe != ' ' {
+                *pipe = '.';
             }
-            if main_loop.contains(&&i) {
-                *pipe = Pipe::Main;
-            }
+            // if main_loop.contains(&&i) {
+            //     // *pipe = '*';
+            // }
         }
     }
 
     fn mark_inside(&mut self, main_loop: &Vec<State>) -> usize {
         for state in main_loop {
             let right_adjacents = match state.direction {
-                Direction::North => [
+                'n' => [
                     state.position - self.width + 1,
                     state.position + 1,
                     state.position + self.width + 1,
                 ],
-                Direction::South => [
+                's' => [
                     state.position - self.width - 1,
                     state.position - 1,
                     state.position + self.width - 1,
                 ],
-                Direction::East => [
+                'e' => [
                     state.position + self.width - 1,
                     state.position + self.width,
                     state.position + self.width + 1,
                 ],
-                Direction::West => [
+                'w' => [
                     state.position - self.width - 1,
                     state.position - self.width,
                     state.position - self.width + 1,
                 ],
+                _ => unreachable!(),
             };
 
             for right_adjacent in right_adjacents {
-                if self.pipes[right_adjacent] == Pipe::Ground {
-                    self.flood(right_adjacent, Pipe::Inside);
+                if self.pipes[right_adjacent] == '.' {
+                    self.flood(right_adjacent, 'A');
                 }
             }
 
             let left_adjacent = match state.direction {
-                Direction::North => [
+                'n' => [
                     state.position - self.width - 1,
                     state.position - 1,
                     state.position + self.width - 1,
                 ],
-                Direction::South => [
+                's' => [
                     state.position - self.width + 1,
                     state.position + 1,
                     state.position + self.width + 1,
                 ],
-                Direction::East => [
+                'e' => [
                     state.position - self.width - 1,
                     state.position - self.width,
                     state.position - self.width + 1,
                 ],
-                Direction::West => [
+                'w' => [
                     state.position + self.width - 1,
                     state.position + self.width,
                     state.position + self.width + 1,
                 ],
+                _ => unreachable!(),
             };
 
             for left_adjacent in left_adjacent {
-                if self.pipes[left_adjacent] == Pipe::Ground {
-                    self.flood(left_adjacent, Pipe::Outside);
+                if self.pipes[left_adjacent] == '.' {
+                    self.flood(left_adjacent, 'B');
                 }
             }
         }
 
-        let real_outside = self.pipes[self.width + 1];
+        let outside = self.pipes[self.width + 1];
 
-        let real_inside = match real_outside {
-            Pipe::Inside => Pipe::Outside,
-            Pipe::Outside => Pipe::Inside,
+        let inside = match outside {
+            'A' => 'B',
+            'B' => 'A',
             _ => panic!("Invalid outside pipe"),
         };
 
-        if real_inside == Pipe::Outside {
-            self.pipes.iter_mut().for_each(|p| {
-                if *p == Pipe::Inside {
-                    *p = Pipe::Outside;
-                } else if *p == Pipe::Outside {
-                    *p = Pipe::Inside;
-                }
-            });
-        }
+        self.pipes.iter_mut().for_each(|p| {
+            if *p == outside {
+                *p = 'O';
+            } else if *p == inside {
+                *p = 'I';
+            }
+        });
 
-        self.pipes.iter().filter(|&p| *p == real_outside).count()
+        self.pipes.iter().filter(|&p| *p == 'I').count()
     }
 
-    fn flood(&mut self, position: usize, pipe: Pipe) {
+    fn flood(&mut self, position: usize, pipe: char) {
         self.pipes[position] = pipe;
 
         let mut queued = vec![position];
 
         while let Some(position) = queued.pop() {
-            if self.pipes[position + 1] == Pipe::Ground {
+            if self.pipes[position + 1] == '.' {
                 queued.push(position + 1);
                 self.pipes[position + 1] = pipe;
             }
-            if self.pipes[position - 1] == Pipe::Ground {
+            if self.pipes[position - 1] == '.' {
                 queued.push(position - 1);
                 self.pipes[position - 1] = pipe;
             }
-            if self.pipes[position + self.width] == Pipe::Ground {
+            if self.pipes[position + self.width] == '.' {
                 queued.push(position + self.width);
                 self.pipes[position + self.width] = pipe;
             }
-            if self.pipes[position - self.width] == Pipe::Ground {
+            if self.pipes[position - self.width] == '.' {
                 queued.push(position - self.width);
                 self.pipes[position - self.width] = pipe;
             }
