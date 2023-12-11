@@ -4,10 +4,10 @@
  * Licensed under MIT, 2023 Samuel Cristobal
  */
 
-use advent_of_code::solve_part1;
+use advent_of_code::part_1;
 use std::error::Error;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let input = include_str!("../../input.txt");
-    Ok(println!("{}", solve_part1(input)?))
+    Ok(println!("{}", part_1::solve(input)?))
 }

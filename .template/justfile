@@ -1,4 +1,4 @@
 check:
-    cargo watch -x check --clear
+    cargo watch -x test --clear
 run part:
     cargo run --bin part-{{part}}
