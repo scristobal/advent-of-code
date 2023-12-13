@@ -6,7 +6,7 @@
 
 use std::collections::VecDeque;
 
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq, Clone, Debug)]
 enum State {
     Unknown, // '?'
     Failure, // '#'
@@ -87,6 +87,27 @@ fn guess(sequence: &[State]) -> Vec<Vec<State>> {
 }
 
 fn solve_sequence(sequence: Vec<State>, missing: VecDeque<usize>) -> usize {
+    // let sequence_formatted = format!(
+    //     "{}",
+    //     sequence
+    //         .iter()
+    //         .map(|s| match s {
+    //             State::Correct => '.',
+    //             State::Failure => '#',
+    //             State::Unknown => '?',
+    //         })
+    //         .collect::<String>()
+    // );
+
+    // let missing_formatted = format!(
+    //     "{}",
+    //     missing
+    //         .iter()
+    //         .map(|n| n.to_string())
+    //         .collect::<Vec<_>>()
+    //         .join(",")
+    // );
+
     let mut queue = VecDeque::new();
 
     queue.push_back(sequence);
@@ -103,6 +124,10 @@ fn solve_sequence(sequence: Vec<State>, missing: VecDeque<usize>) -> usize {
         queue.extend(more.into_iter());
     }
 
+    // println!("assert_eq!(solve(\"{sequence_formatted} {missing_formatted}\").unwrap(), \"{count_solutions}\");");
+
+    // println!("#[case(parse(\"{sequence_formatted}\"), {count_solutions})]");
+
     count_solutions
 }
 
@@ -118,28 +143,27 @@ pub fn solve(input: &'static str) -> Result<String, anyhow::Error> {
 mod tests {
     use super::*;
 
-    // #[test]
-    // fn guess_test() {
-    //     assert_eq!(
-    //         guess(&"???.###".to_string()),
-    //         Some((".??.###".to_string(), "#??.###".to_string()))
-    //     );
+    #[test]
+    fn guess_test() {
+        assert_eq!(
+            guess(&parse("???.###").0),
+            vec![parse(".??.###").0, parse("#??.###").0]
+        );
 
-    //     assert_eq!(guess(&".#.###".to_string()), None);
+        assert_eq!(guess(&parse(".#.###").0), Vec::<Vec<State>>::new());
 
-    //     assert_eq!(
-    //         guess(&".#?#".to_string()),
-    //         Some((".#.#".to_string(), ".###".to_string()))
-    //     );
-    // }
+        assert_eq!(
+            guess(&parse(".#?#").0),
+            vec![parse(".#.#").0, parse(".###").0]
+        );
+    }
 
-    // #[test]
-    // fn check_test() {
-
-    //     assert!(check(, &VecDeque::from(vec![3])));
-    //     assert!(!check(&"#.##".to_string(), &VecDeque::from(vec![3])));
-    //     assert!(check(&"#.##".to_string(), &VecDeque::from(vec![1, 2])));
-    // }
+    #[test]
+    fn check_test() {
+        assert!(check(&parse("#.##").0, &VecDeque::from(vec![3usize])));
+        assert!(!check(&parse("#.##").0, &VecDeque::from(vec![3])));
+        assert!(check(&parse("#.##").0, &VecDeque::from(vec![1, 2])));
+    }
 
     #[test]
     fn single_lines() {
@@ -149,6 +173,7 @@ mod tests {
         assert_eq!(solve("????.#...#... 4,1,1").unwrap(), "1");
         assert_eq!(solve("????.######..#####. 1,6,5").unwrap(), "4");
         assert_eq!(solve("?###???????? 3,2,1").unwrap(), "10");
+        assert_eq!(solve("??????##?? 1,4").unwrap(), "12");
     }
 
     #[test]
