@@ -146,23 +146,23 @@ mod tests {
     #[test]
     fn guess_test() {
         assert_eq!(
-            guess(&parse("???.###").0),
-            vec![parse(".??.###").0, parse("#??.###").0]
+            guess(&parse("???.### 3").0),
+            vec![parse(".??.### 3").0, parse("#??.### 3").0]
         );
 
-        assert_eq!(guess(&parse(".#.###").0), Vec::<Vec<State>>::new());
+        assert_eq!(guess(&parse(".#.### 3").0), Vec::<Vec<State>>::new());
 
         assert_eq!(
-            guess(&parse(".#?#").0),
-            vec![parse(".#.#").0, parse(".###").0]
+            guess(&parse(".#?# 3").0),
+            vec![parse(".#.# 3").0, parse(".### 3").0]
         );
     }
 
     #[test]
     fn check_test() {
-        assert!(check(&parse("#.##").0, &VecDeque::from(vec![3usize])));
-        assert!(!check(&parse("#.##").0, &VecDeque::from(vec![3])));
-        assert!(check(&parse("#.##").0, &VecDeque::from(vec![1, 2])));
+        assert!(check(&parse("###. 3").0, &VecDeque::from(vec![3usize])));
+        assert!(!check(&parse("#.## 3").0, &VecDeque::from(vec![3])));
+        assert!(check(&parse("#.## 2").0, &VecDeque::from(vec![1, 2])));
     }
 
     #[test]
