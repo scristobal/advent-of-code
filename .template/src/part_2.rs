@@ -4,7 +4,7 @@
  * Licensed under MIT, 2023 Samuel Cristobal
  */
 
-pub fn solve(input: &'static str) -> Result<String, anyhow::Error> {
+pub fn solve(input: &'static str) -> String {
     dbg!(input);
     todo!()
 }
@@ -13,7 +13,7 @@ pub fn solve(input: &'static str) -> Result<String, anyhow::Error> {
 mod tests {
     use super::*;
 
-    const SAMPLE: &str = include_str!("../sample.txt");
+    const SAMPLE: &str = "";
 
     #[ignore = "not implemented"]
     #[test]

@@ -9,5 +9,5 @@ use std::error::Error;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let input = include_str!("../../input.txt");
-    Ok(println!("{}", part_2::solve(input)?))
+    Ok(println!("{}", part_2::solve(input)))
 }
