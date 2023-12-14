@@ -18,7 +18,7 @@ mod tests {
     #[ignore = "not implemented"]
     #[test]
     fn solve_sample() {
-        let result = solve(SAMPLE).unwrap();
+        let result = solve(SAMPLE);
         assert_eq!(result, "");
     }
 }
