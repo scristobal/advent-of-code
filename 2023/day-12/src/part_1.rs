@@ -87,27 +87,6 @@ fn guess(sequence: &[State]) -> Vec<Vec<State>> {
 }
 
 fn solve_sequence(sequence: Vec<State>, missing: VecDeque<usize>) -> usize {
-    // let sequence_formatted = format!(
-    //     "{}",
-    //     sequence
-    //         .iter()
-    //         .map(|s| match s {
-    //             State::Correct => '.',
-    //             State::Failure => '#',
-    //             State::Unknown => '?',
-    //         })
-    //         .collect::<String>()
-    // );
-
-    // let missing_formatted = format!(
-    //     "{}",
-    //     missing
-    //         .iter()
-    //         .map(|n| n.to_string())
-    //         .collect::<Vec<_>>()
-    //         .join(",")
-    // );
-
     let mut queue = VecDeque::new();
 
     queue.push_back(sequence);
@@ -123,10 +102,6 @@ fn solve_sequence(sequence: Vec<State>, missing: VecDeque<usize>) -> usize {
 
         queue.extend(more.into_iter());
     }
-
-    // println!("assert_eq!(solve(\"{sequence_formatted} {missing_formatted}\").unwrap(), \"{count_solutions}\");");
-
-    // println!("#[case(parse(\"{sequence_formatted}\"), {count_solutions})]");
 
     count_solutions
 }
