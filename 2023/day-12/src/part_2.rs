@@ -4,8 +4,12 @@
  * Licensed under MIT, 2023 Samuel Cristobal
  */
 
-use std::fmt::{self, Debug, Formatter};
+use std::{
+    collections::HashMap,
+    fmt::{self, Debug, Formatter},
+};
 
+use nom::sequence;
 use rayon::prelude::*;
 
 #[derive(PartialEq, Clone, Copy, Hash, Eq)]
@@ -51,75 +55,99 @@ fn parse(input: &str) -> Board {
         .unwrap()
 }
 
-fn num_possible_arrangements(sequence: &[State], lengths: &[usize]) -> usize {
+fn num_possible_arrangements_cached(sequence: &[State], lengths: &[usize]) -> usize {
+    let mut cache: HashMap<(&[State], &[usize]), usize> = HashMap::new();
+    num_possible_arrangements(sequence, lengths, &mut cache)
+}
+
+fn num_possible_arrangements<'b, 'a>(
+    sequence: &'a [State],
+    lengths: &'b [usize],
+    cache: &mut HashMap<(&'a [State], &'b [usize]), usize>,
+) -> usize {
+    // try cache first
+    if let Some(cached_num_arrangements) = cache.get(&(sequence, lengths)) {
+        return *cached_num_arrangements;
+    };
+
+    // base cases:
+    if sequence.is_empty() && lengths.is_empty() {
+        // only one arrange possible, the empty one
+        cache.insert((sequence, lengths), 1);
+        return 1;
+    }
+
+    if lengths.is_empty() && sequence.contains(&Black) {
+        // no more blacks can be allocated, but the sequence still has at least one black
+        cache.insert((sequence, lengths), 0);
+        return 0;
+    }
+
+    if lengths.is_empty() && !sequence.contains(&Black) {
+        // only one arrangement possible: all unknowns are white
+        cache.insert((sequence, lengths), 1);
+        return 1;
+    }
+
+    let min_sequence_len = lengths.iter().sum::<usize>() + lengths.len() - 1;
+    if sequence.len() < min_sequence_len {
+        // it is impossible to fit the shortest sequence that can accommodate lengths
+        cache.insert((sequence, lengths), 0);
+        return 0;
+    }
+
     let mut num_arrangements = 0;
 
-    let mut queue = vec![(sequence, lengths)];
+    // recursive cases:
+    if sequence[0] != Black {
+        // try setting the first item of sequence to White
+        num_arrangements += num_possible_arrangements(&sequence[1..], lengths, cache);
+    }
 
-    while let Some((sequence, lengths)) = queue.pop() {
-        // base cases:
+    let next_group_size = lengths[0];
 
-        if sequence.is_empty() && lengths.is_empty() {
-            // only one arrange possible, the empty one
+    if !sequence[..next_group_size].contains(&White) {
+        // there is contiguous space for the next group, eg. free of White'
+        if next_group_size == sequence.len() {
+            // it is the end of the sequence
             num_arrangements += 1;
-            continue;
+            cache.insert((sequence, lengths), num_arrangements);
+            return num_arrangements;
         }
-
-        if lengths.is_empty() && sequence.contains(&Black) {
-            // no more blacks can be allocated, but the sequence still has at least one black
-            continue;
-        }
-
-        if lengths.is_empty() && !sequence.contains(&Black) {
-            // only one arrangement possible: all unknowns are white
-            num_arrangements += 1;
-            continue;
-        }
-
-        let min_sequence_len = lengths.iter().sum::<usize>() + lengths.len() - 1;
-        if sequence.len() < min_sequence_len {
-            // it is impossible to fit the shortest sequence that can accommodate lengths
-            continue;
-        }
-
-        // recursive cases:
-
-        if sequence[0] != Black {
-            // try `sequence[0] = White`
-            queue.push((&sequence[1..], lengths));
-        }
-
-        let next_group_size = lengths[0];
-        if !sequence[..next_group_size].contains(&White) {
-            if next_group_size == sequence.len() {
-                num_arrangements += 1;
-                continue;
-            }
-            // now is safe to assume next_group_size < sequence.len()
-            if sequence[next_group_size] != Black {
-                // try fit a block of size `next_group_size` of `Black`
-                queue.push((&sequence[next_group_size + 1..], &lengths[1..]));
-            }
+        // not the end of the sequence, next item should not be black
+        if sequence[next_group_size] != Black {
+            // try fit a block of size `next_group_size` of `Black`
+            num_arrangements +=
+                num_possible_arrangements(&sequence[next_group_size + 1..], &lengths[1..], cache);
         }
     }
 
+    cache.insert((sequence, lengths), num_arrangements);
     num_arrangements
 }
 
 fn fold(board: &Board, folds: usize) -> Board {
-    let mut sequence = board.sequence.to_vec();
-    let mut lengths = board.lengths.to_vec();
+    let sequence = board
+        .sequence
+        .iter()
+        .cloned()
+        .chain([Unknown])
+        .cycle()
+        .take(board.sequence.len() * (folds + 1) + folds)
+        .collect();
 
-    for _ in 0..folds {
-        sequence.push(State::Unknown);
-        sequence.append(&mut sequence.clone());
-        lengths.append(&mut lengths.clone())
-    }
+    let lengths = board
+        .lengths
+        .iter()
+        .cloned()
+        .cycle()
+        .take(board.lengths.len() * (folds + 1))
+        .collect();
 
     Board { sequence, lengths }
 }
 
-pub const FOLDS: usize = 1;
+pub const FOLDS: usize = 4;
 
 pub fn solve(input: &'static str) -> Result<String, anyhow::Error> {
     let records: Vec<_> = input.lines().map(parse).collect();
@@ -127,7 +155,7 @@ pub fn solve(input: &'static str) -> Result<String, anyhow::Error> {
     let res: usize = records
         .par_iter()
         .map(|s| fold(s, FOLDS))
-        .map(|b| num_possible_arrangements(&b.sequence, &b.lengths))
+        .map(|b| num_possible_arrangements_cached(&b.sequence, &b.lengths))
         .sum();
 
     Ok(res.to_string())
@@ -139,8 +167,23 @@ mod tests {
 
     use super::*;
 
+    #[rstest]
+    #[case(parse("???.### 1,1,3"), 1)]
+    #[case(parse(".??..??...?##. 1,1,3"), 16384)]
+    #[case(parse("?#?#?#?#?#?#?#? 1,3,1,6"), 1)]
+    #[case(parse("????.#...#... 4,1,1"), 16)]
+    #[case(parse("????.######..#####. 1,6,5"), 2500)]
+    #[case(parse("?###???????? 3,2,1"), 506250)]
+    fn single_lines_test(#[case] input: Board, #[case] output: usize) {
+        let Board { sequence, lengths } = fold(&input, 4);
+        assert_eq!(
+            num_possible_arrangements_cached(&sequence, &lengths),
+            output
+        );
+    }
+
     #[test]
-    fn solve_sample() {
+    fn solve_sample_test() {
         let result = solve(
             "???.### 1,1,3
 .??..??...?##. 1,1,3
@@ -150,19 +193,15 @@ mod tests {
 ?###???????? 3,2,1",
         )
         .unwrap();
-        assert_eq!(result, "281");
+        assert_eq!(result, "525152");
     }
-    // FOLDS = 0 -> 21
-    // FOLDS = 1 -> 281
-    // FOLDS = 2 -> 102913
-    // FOLDS
 
     #[rstest]
     #[case(parse("???? 1,1"), 3)]
     #[case(parse("???? 1,2"), 1)]
     #[case(parse("?#?? 2,1"), 1)]
     #[case(parse("??#??? 1,2"), 2)]
-    #[case(parse("??#??? 3,1"), 3)] //3
+    #[case(parse("??#??? 3,1"), 3)]
     #[case(parse("??????##?? 1,4"), 12)]
     #[case(parse(".?????.??#? 1,2"), 11)]
     #[case(parse("??#??? 3,1,1"), 0)]
@@ -173,24 +212,12 @@ mod tests {
     #[case(parse("?###???????? 3,2,1"), 10)]
     #[case(parse("????.#...#... 4,1,1"), 1)]
     #[case(parse("????.?..?.. 4,1,1"), 1)]
-    fn fit_many_test(#[case] input: Board, #[case] output: usize) {
-        let Board { sequence, lengths } = fold(&input, 0);
-        assert_eq!(num_possible_arrangements(&sequence, &lengths), output);
-    }
-
-    #[rstest]
     #[case(parse("???.### 1,1,3"), 1)]
     #[case(parse(".??..??...?##. 1,1,3"), 4)]
     #[case(parse("?#?#?#?#?#?#?#? 1,3,1,6"), 1)]
     #[case(parse("????.#...#... 4,1,1"), 1)]
     #[case(parse("????.######..#####. 1,6,5"), 4)]
     #[case(parse("?###???????? 3,2,1"), 10)]
-    fn samples_test(#[case] input: Board, #[case] output: usize) {
-        let Board { sequence, lengths } = fold(&input, 0);
-        assert_eq!(num_possible_arrangements(&sequence, &lengths), output);
-    }
-
-    #[rstest]
     #[case(parse("?#????????????##?? 1,1,10"), 9)]
     #[case(parse("?.???.?#???#???.? 3,6,1"), 5)]
     #[case(parse("#?????#??. 1,3,2"), 1)]
@@ -1191,8 +1218,11 @@ mod tests {
     #[case(parse("#.?#?.#.????.???# 1,3,1,2,4"), 3)]
     #[case(parse(".??#?.?#??#??. 1,2,2"), 3)]
     #[case(parse("?#????#?.??#?????? 3,1,1,1,1,1"), 25)]
-    fn solve_part_1(#[case] input: Board, #[case] output: usize) {
+    fn single_line_fold0_test(#[case] input: Board, #[case] output: usize) {
         let Board { sequence, lengths } = fold(&input, 0);
-        assert_eq!(num_possible_arrangements(&sequence, &lengths), output);
+        assert_eq!(
+            num_possible_arrangements_cached(&sequence, &lengths),
+            output
+        );
     }
 }
