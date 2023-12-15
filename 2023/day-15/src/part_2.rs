@@ -4,13 +4,32 @@
  * Licensed under MIT, 2023 Samuel Cristobal
  */
 
+use core::num;
 use std::collections::{HashMap, VecDeque};
+use std::hash::{BuildHasherDefault, Hasher};
 
 use indexmap::IndexMap;
 
 enum Instruction {
     Removal(String),
     Insert(String, usize),
+}
+
+#[derive(Default)]
+struct BoxNum(usize);
+
+impl Hasher for BoxNum {
+    fn finish(&self) -> u64 {
+        self.0 as u64
+    }
+
+    fn write(&mut self, bytes: &[u8]) {
+        if bytes.len() == 1 && bytes[0] == 255 {
+            return;
+        }
+
+        self.0 = bytes[0] as usize;
+    }
 }
 
 // eg. `rn=1` or `cm-`
@@ -52,12 +71,14 @@ pub fn solve(input: &'static str) -> String {
     let input = input.replace('\n', "");
 
     let mut instructions: VecDeque<_> = input.split(',').map(parse_instruction).collect();
-    let mut boxes = HashMap::new();
+    let mut boxes =
+        HashMap::<usize, IndexMap<String, usize>, BuildHasherDefault<BoxNum>>::default();
 
     while let Some(instruction) = instructions.pop_front() {
         match instruction {
             Instruction::Removal(label) => {
                 let hash = hash_algorithm(&label);
+
                 boxes
                     .entry(hash)
                     .and_modify(|e: &mut IndexMap<String, usize>| {
