@@ -4,7 +4,6 @@
  * Licensed under MIT, 2023 Samuel Cristobal
  */
 
-use std::collections::HashSet;
 use std::fmt::{self, Debug, Formatter};
 
 use rayon::prelude::*;
@@ -15,6 +14,8 @@ enum State {
     Black,   // '#'
     White,   // '.'
 }
+
+use State::*;
 
 #[derive(Hash, PartialEq, Eq, Debug)]
 struct Board {
@@ -50,87 +51,62 @@ fn parse(input: &str) -> Board {
         .unwrap()
 }
 
-fn is_solution(board: &Board) -> bool {
-    if board.sequence.contains(&State::Unknown) {
-        return false;
-    }
+fn num_possible_arrangements(sequence: &[State], lengths: &[usize]) -> usize {
+    let mut num_arrangements = 0;
 
-    let ranges: Vec<_> = board
-        .sequence
-        .split(|s| *s == State::White)
-        .filter(|s| !s.is_empty())
-        .map(|s| s.len())
-        .collect();
+    let mut queue = vec![(sequence, lengths)];
 
-    ranges == *board.lengths
-}
+    while let Some((sequence, lengths)) = queue.pop() {
+        // base cases:
 
-fn is_possible(board: &Board) -> bool {
-    let ranges: Vec<_> = board
-        .sequence
-        .split(|c| *c == State::White)
-        .filter(|s| !s.is_empty())
-        .collect();
-
-    let mut j = 0;
-
-    while j < ranges.len() && j < board.lengths.len() {
-        let is_complete = ranges[j].iter().all(|s| *s == State::Black);
-
-        if !is_complete {
-            return true;
+        if sequence.is_empty() && lengths.is_empty() {
+            // only one arrange possible, the empty one
+            num_arrangements += 1;
+            continue;
         }
 
-        if ranges[j].len() == board.lengths[j] {
-            j += 1;
-        } else {
-            return false;
+        if lengths.is_empty() && sequence.contains(&Black) {
+            // no more blacks can be allocated, but the sequence still has at least one black
+            continue;
+        }
+
+        if lengths.is_empty() && !sequence.contains(&Black) {
+            // only one arrangement possible: all unknowns are white
+            num_arrangements += 1;
+            continue;
+        }
+
+        let min_sequence_len = lengths.iter().sum::<usize>() + lengths.len() - 1;
+        if sequence.len() < min_sequence_len {
+            // it is impossible to fit the shortest sequence that can accommodate lengths
+            continue;
+        }
+
+        // recursive cases:
+
+        if sequence[0] != Black {
+            // try `sequence[0] = White`
+            queue.push((&sequence[1..], lengths));
+        }
+
+        let next_group_size = lengths[0];
+        if !sequence[..next_group_size].contains(&White) {
+            if next_group_size == sequence.len() {
+                num_arrangements += 1;
+                continue;
+            }
+            // now is safe to assume next_group_size < sequence.len()
+            if sequence[next_group_size] != Black {
+                // try fit a block of size `next_group_size` of `Black`
+                queue.push((&sequence[next_group_size + 1..], &lengths[1..]));
+            }
         }
     }
 
-    true
+    num_arrangements
 }
 
-fn guess(board: &Board) -> Vec<Board> {
-    let mut new_sequences = vec![];
-
-    let Some((j, _)) = board
-        .sequence
-        .iter()
-        .enumerate()
-        .find(|(_, s)| **s == State::Unknown)
-    else {
-        return new_sequences;
-    };
-
-    let mut white: Vec<_> = board.sequence.to_vec();
-    white[j] = State::White;
-
-    let white_board = Board {
-        sequence: white,
-        lengths: board.lengths.to_vec(),
-    };
-
-    if is_possible(&white_board) {
-        new_sequences.push(white_board)
-    }
-
-    let mut black = board.sequence.to_vec();
-    black[j] = State::Black;
-
-    let black_board = Board {
-        sequence: black,
-        lengths: board.lengths.to_vec(),
-    };
-
-    if is_possible(&black_board) {
-        new_sequences.push(black_board)
-    }
-
-    new_sequences
-}
-
-fn solve_one(board: &Board, folds: usize) -> usize {
+fn fold(board: &Board, folds: usize) -> Board {
     let mut sequence = board.sequence.to_vec();
     let mut lengths = board.lengths.to_vec();
 
@@ -140,38 +116,7 @@ fn solve_one(board: &Board, folds: usize) -> usize {
         lengths.append(&mut lengths.clone())
     }
 
-    let board = Board { sequence, lengths };
-
-    let mut solutions = HashSet::new();
-    let mut visited = HashSet::new();
-    let mut queue = Vec::new();
-
-    queue.push(board);
-
-    while let Some(board) = queue.pop() {
-        if !visited.contains(&board) {
-            let boards = guess(&board);
-
-            for board in boards {
-                if is_solution(&board) {
-                    solutions.insert(board);
-                    continue;
-                }
-                if !visited.contains(&board) {
-                    queue.push(Board {
-                        sequence: board.sequence,
-                        lengths: board.lengths,
-                    });
-                }
-            }
-
-            visited.insert(board);
-        }
-    }
-
-    dbg!(&solutions);
-
-    solutions.len()
+    Board { sequence, lengths }
 }
 
 pub const FOLDS: usize = 1;
@@ -179,7 +124,11 @@ pub const FOLDS: usize = 1;
 pub fn solve(input: &'static str) -> Result<String, anyhow::Error> {
     let records: Vec<_> = input.lines().map(parse).collect();
 
-    let res: usize = records.par_iter().map(|s| solve_one(s, FOLDS)).sum();
+    let res: usize = records
+        .par_iter()
+        .map(|s| fold(s, FOLDS))
+        .map(|b| num_possible_arrangements(&b.sequence, &b.lengths))
+        .sum();
 
     Ok(res.to_string())
 }
@@ -213,7 +162,7 @@ mod tests {
     #[case(parse("???? 1,2"), 1)]
     #[case(parse("?#?? 2,1"), 1)]
     #[case(parse("??#??? 1,2"), 2)]
-    #[case(parse("??#??? 3,1"), 3)]
+    #[case(parse("??#??? 3,1"), 3)] //3
     #[case(parse("??????##?? 1,4"), 12)]
     #[case(parse(".?????.??#? 1,2"), 11)]
     #[case(parse("??#??? 3,1,1"), 0)]
@@ -225,7 +174,8 @@ mod tests {
     #[case(parse("????.#...#... 4,1,1"), 1)]
     #[case(parse("????.?..?.. 4,1,1"), 1)]
     fn fit_many_test(#[case] input: Board, #[case] output: usize) {
-        assert_eq!(solve_one(&input, 0), output);
+        let Board { sequence, lengths } = fold(&input, 0);
+        assert_eq!(num_possible_arrangements(&sequence, &lengths), output);
     }
 
     #[rstest]
@@ -236,7 +186,8 @@ mod tests {
     #[case(parse("????.######..#####. 1,6,5"), 4)]
     #[case(parse("?###???????? 3,2,1"), 10)]
     fn samples_test(#[case] input: Board, #[case] output: usize) {
-        assert_eq!(solve_one(&input, 0), output);
+        let Board { sequence, lengths } = fold(&input, 0);
+        assert_eq!(num_possible_arrangements(&sequence, &lengths), output);
     }
 
     #[rstest]
@@ -1241,6 +1192,7 @@ mod tests {
     #[case(parse(".??#?.?#??#??. 1,2,2"), 3)]
     #[case(parse("?#????#?.??#?????? 3,1,1,1,1,1"), 25)]
     fn solve_part_1(#[case] input: Board, #[case] output: usize) {
-        assert_eq!(solve_one(&input, 0), output);
+        let Board { sequence, lengths } = fold(&input, 0);
+        assert_eq!(num_possible_arrangements(&sequence, &lengths), output);
     }
 }
