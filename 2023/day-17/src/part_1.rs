@@ -5,7 +5,6 @@
  */
 
 use std::collections::BinaryHeap;
-// use std::hash::{Hash, Hasher};
 
 use ndarray::{Array, ArrayBase, Dim, OwnedRepr};
 
@@ -27,7 +26,7 @@ fn parse(input: &str) -> Matrix {
     .unwrap()
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Direction {
     Up,
     Down,
@@ -62,16 +61,12 @@ impl Ord for State {
 impl PartialEq for State {
     fn eq(&self, other: &Self) -> bool {
         self.position == other.position
+            && self.direction == other.direction
+            && self.consecutive_steps == other.consecutive_steps
     }
 }
 
 impl Eq for State {}
-
-// impl Hash for State {
-//     fn hash<H: Hasher>(&self, state: &mut H) {
-//         self.position.hash(state);
-//     }
-// }
 
 fn move_in_direction(
     position: &(usize, usize),
