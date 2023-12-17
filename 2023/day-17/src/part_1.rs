@@ -16,7 +16,7 @@ fn parse(input: &str) -> Matrix {
     let input = input.replace('\n', "");
 
     Array::from_shape_vec(
-        (width, height),
+        (height, width),
         input
             .chars()
             .map(|c| c.to_digit(10).unwrap() as usize)
