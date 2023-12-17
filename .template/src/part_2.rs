@@ -13,7 +13,7 @@ pub fn solve(input: &'static str) -> String {
 mod tests {
     use super::*;
 
-    const SAMPLE: &str = "";
+    const SAMPLE: &str = include_str!("../sample.txt");
 
     #[ignore = "not implemented"]
     #[test]
