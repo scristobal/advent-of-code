@@ -1,0 +1,6 @@
+run part:
+    cargo run --bin part-{{part}}
+bench part:
+    cargo bench --bench {{part}}
+test:
+    cargo watch -x "nextest run" --clear
