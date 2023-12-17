@@ -4,29 +4,27 @@
  * Licensed under MIT, 2023 Samuel Cristobal
  */
 
-use std::collections::{BinaryHeap, HashSet};
-use std::hash::{Hash, Hasher};
+use std::collections::BinaryHeap;
+// use std::hash::{Hash, Hasher};
 
 use ndarray::{Array, ArrayBase, Dim, OwnedRepr};
 
-struct HeatLossMap(ArrayBase<OwnedRepr<u8>, Dim<[usize; 2]>>);
+type Matrix = ArrayBase<OwnedRepr<usize>, Dim<[usize; 2]>>;
 
-fn parse(input: &str) -> HeatLossMap {
+fn parse(input: &str) -> Matrix {
     let width = input.chars().position(|c| c == '\n').unwrap();
     let height = input.chars().filter(|c| *c == '\n').count() + 1;
 
     let input = input.replace('\n', "");
 
-    HeatLossMap(
-        Array::from_shape_vec(
-            (width, height),
-            input
-                .chars()
-                .map(|c| c.to_digit(10).unwrap() as u8)
-                .collect::<Vec<u8>>(),
-        )
-        .unwrap(),
+    Array::from_shape_vec(
+        (width, height),
+        input
+            .chars()
+            .map(|c| c.to_digit(10).unwrap() as usize)
+            .collect::<Vec<usize>>(),
     )
+    .unwrap()
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -44,7 +42,8 @@ struct State {
     position: (usize, usize),
     consecutive_steps: usize,
     direction: Direction,
-    heat_loss: usize,
+    g_score: usize,
+    f_score: usize,
 }
 
 impl PartialOrd for State {
@@ -54,9 +53,9 @@ impl PartialOrd for State {
 }
 
 impl Ord for State {
-    // ordered by self.heat_loss in reverse
+    // ordered by self.f_score in reverse
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.heat_loss.cmp(&other.heat_loss).reverse()
+        self.f_score.cmp(&other.f_score).reverse()
     }
 }
 
@@ -68,11 +67,11 @@ impl PartialEq for State {
 
 impl Eq for State {}
 
-impl Hash for State {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.position.hash(state);
-    }
-}
+// impl Hash for State {
+//     fn hash<H: Hasher>(&self, state: &mut H) {
+//         self.position.hash(state);
+//     }
+// }
 
 fn move_in_direction(
     position: &(usize, usize),
@@ -89,10 +88,10 @@ fn move_in_direction(
 }
 
 impl State {
-    fn step(&self, heat_loss_map: &HeatLossMap) -> Vec<State> {
+    fn step(&self, heat: &Matrix) -> Vec<State> {
         let mut new_states = vec![];
 
-        let dim = heat_loss_map.0.dim();
+        let dim = heat.dim();
 
         // try move forward
         if self.consecutive_steps < MAX_CONSECUTIVE_STEPS {
@@ -103,7 +102,8 @@ impl State {
                     position,
                     consecutive_steps: self.consecutive_steps + 1,
                     direction: self.direction,
-                    heat_loss: self.heat_loss + *heat_loss_map.0.get(position).unwrap() as usize,
+                    f_score: usize::MAX,
+                    g_score: usize::MAX,
                 });
             };
         }
@@ -123,7 +123,8 @@ impl State {
                 position,
                 consecutive_steps: 1,
                 direction,
-                heat_loss: self.heat_loss + *heat_loss_map.0.get(position).unwrap() as usize,
+                f_score: usize::MAX,
+                g_score: usize::MAX,
             });
         };
 
@@ -142,7 +143,8 @@ impl State {
                 position,
                 consecutive_steps: 1,
                 direction,
-                heat_loss: self.heat_loss + *heat_loss_map.0.get(position).unwrap() as usize,
+                f_score: usize::MAX,
+                g_score: usize::MAX,
             });
         };
 
@@ -151,50 +153,53 @@ impl State {
 }
 
 pub fn solve(input: &'static str) -> String {
-    let heat_loss_map = parse(input);
+    let heat = parse(input);
+    let end_position = (heat.dim().0 - 1, heat.dim().1 - 1);
 
-    let end_position = (heat_loss_map.0.dim().0 - 1, heat_loss_map.0.dim().1 - 1);
+    let h = |state: &State| -> usize {
+        let dx = (state.position.0 as isize - end_position.0 as isize).abs();
+        let dy = (state.position.1 as isize - end_position.1 as isize).abs();
 
-    let initial_state = State {
+        (dx + dy) as usize
+    };
+
+    let mut initial_state = State {
         position: (0, 0),
         direction: Direction::Right,
         consecutive_steps: 0,
-        heat_loss: 0,
+        g_score: 0,
+        f_score: 0,
     };
 
-    let mut visited = HashSet::new();
+    initial_state.f_score = h(&initial_state);
 
-    let mut neighbors: BinaryHeap<State> = BinaryHeap::new();
+    let mut open_set: BinaryHeap<State> = BinaryHeap::new();
+    open_set.push(initial_state);
 
-    neighbors.push(initial_state);
+    let d = |_current: &State, neighbor: &State| -> usize { *heat.get(neighbor.position).unwrap() };
 
-    let min_heat_loss = loop {
-        if let Some(heat_loss) = neighbors
-            .iter()
-            .filter_map(|path_finder| {
-                (path_finder.position == end_position).then_some(path_finder.heat_loss)
-            })
-            .min()
-        {
-            break heat_loss;
+    while let Some(state) = open_set.pop() {
+        if state.position == end_position {
+            return state.g_score.to_string();
         }
 
-        let Some(state) = neighbors.pop() else {
-            panic!("No more neighbors to explore");
-        };
+        let neighbor_states = state.step(&heat);
 
-        let states = state.step(&heat_loss_map);
+        for mut neighbor in neighbor_states {
+            let tentative_g_score = state.g_score + d(&state, &neighbor);
 
-        for state in states {
-            if !visited.contains(&state) {
-                neighbors.push(state)
+            if tentative_g_score < neighbor.g_score {
+                neighbor.g_score = tentative_g_score;
+                neighbor.f_score = tentative_g_score + h(&neighbor);
+
+                if !open_set.as_slice().contains(&neighbor) {
+                    open_set.push(neighbor);
+                }
             }
         }
+    }
 
-        visited.insert(state);
-    };
-
-    min_heat_loss.to_string()
+    panic!()
 }
 
 #[cfg(test)]
