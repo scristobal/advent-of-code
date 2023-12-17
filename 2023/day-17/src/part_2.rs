@@ -38,12 +38,20 @@ use Direction::*;
 const MAX_CONSECUTIVE_STEPS: usize = 10;
 const MIN_STEPS_BEFORE_TURNING: usize = 4;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, Hash)]
 struct State {
     position: (usize, usize),
     consecutive_steps: usize,
     direction: Direction,
 }
+
+impl PartialEq for State {
+    fn eq(&self, other: &Self) -> bool {
+        self.position == other.position
+    }
+}
+
+impl Eq for State {}
 
 fn move_in_direction(
     position: &(usize, usize),
