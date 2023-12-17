@@ -4,9 +4,8 @@
  * Licensed under MIT, 2023 Samuel Cristobal
  */
 
-use std::collections::BinaryHeap;
-
 use ndarray::{Array, ArrayBase, Dim, OwnedRepr};
+use pathfinding::prelude::dijkstra;
 
 type Matrix = ArrayBase<OwnedRepr<usize>, Dim<[usize; 2]>>;
 
@@ -26,7 +25,7 @@ fn parse(input: &str) -> Matrix {
     .unwrap()
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum Direction {
     Up,
     Down,
@@ -36,37 +35,12 @@ enum Direction {
 
 const MAX_CONSECUTIVE_STEPS: usize = 3;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct State {
     position: (usize, usize),
     consecutive_steps: usize,
     direction: Direction,
-    g_score: usize,
-    f_score: usize,
 }
-
-impl PartialOrd for State {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for State {
-    // ordered by self.f_score in reverse
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.f_score.cmp(&other.f_score).reverse()
-    }
-}
-
-impl PartialEq for State {
-    fn eq(&self, other: &Self) -> bool {
-        self.position == other.position
-            && self.direction == other.direction
-            && self.consecutive_steps == other.consecutive_steps
-    }
-}
-
-impl Eq for State {}
 
 fn move_in_direction(
     position: &(usize, usize),
@@ -97,8 +71,6 @@ impl State {
                     position,
                     consecutive_steps: self.consecutive_steps + 1,
                     direction: self.direction,
-                    f_score: usize::MAX,
-                    g_score: usize::MAX,
                 });
             };
         }
@@ -118,8 +90,6 @@ impl State {
                 position,
                 consecutive_steps: 1,
                 direction,
-                f_score: usize::MAX,
-                g_score: usize::MAX,
             });
         };
 
@@ -138,8 +108,6 @@ impl State {
                 position,
                 consecutive_steps: 1,
                 direction,
-                f_score: usize::MAX,
-                g_score: usize::MAX,
             });
         };
 
@@ -149,52 +117,24 @@ impl State {
 
 pub fn solve(input: &'static str) -> String {
     let heat = parse(input);
-    let end_position = (heat.dim().0 - 1, heat.dim().1 - 1);
 
-    let h = |state: &State| -> usize {
-        let dx = (state.position.0 as isize - end_position.0 as isize).abs();
-        let dy = (state.position.1 as isize - end_position.1 as isize).abs();
-
-        (dx + dy) as usize
-    };
-
-    let mut initial_state = State {
-        position: (0, 0),
-        direction: Direction::Right,
-        consecutive_steps: 0,
-        g_score: 0,
-        f_score: 0,
-    };
-
-    initial_state.f_score = h(&initial_state);
-
-    let mut open_set: BinaryHeap<State> = BinaryHeap::new();
-    open_set.push(initial_state);
-
-    let d = |_current: &State, neighbor: &State| -> usize { *heat.get(neighbor.position).unwrap() };
-
-    while let Some(state) = open_set.pop() {
-        if state.position == end_position {
-            return state.g_score.to_string();
-        }
-
-        let neighbor_states = state.step(&heat);
-
-        for mut neighbor in neighbor_states {
-            let tentative_g_score = state.g_score + d(&state, &neighbor);
-
-            if tentative_g_score < neighbor.g_score {
-                neighbor.g_score = tentative_g_score;
-                neighbor.f_score = tentative_g_score + h(&neighbor);
-
-                if !open_set.as_slice().contains(&neighbor) {
-                    open_set.push(neighbor);
-                }
-            }
-        }
-    }
-
-    panic!()
+    dijkstra(
+        &State {
+            position: (0, 0),
+            direction: Direction::Right,
+            consecutive_steps: 0,
+        },
+        |state: &State| {
+            state
+                .step(&heat)
+                .into_iter()
+                .map(|s| (s, *heat.get(s.position).unwrap()))
+        },
+        |state: &State| state.position == (heat.dim().0 - 1, heat.dim().1 - 1),
+    )
+    .unwrap()
+    .1
+    .to_string()
 }
 
 #[cfg(test)]
