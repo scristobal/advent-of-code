@@ -82,10 +82,7 @@ impl World {
         Self { blocks, z_floor }
     }
 
-    // returns true iff world has changed
-    fn apply_z_force(&mut self) -> bool {
-        let mut changed = false;
-
+    fn apply_z_force(&mut self) {
         // remember blocks are ordered in ascending z-axis
         for i in 0..self.blocks.len() {
             let blocks = &mut self.blocks;
@@ -105,16 +102,8 @@ impl World {
 
                 is_over_other_block = blocks[0..i].iter().any(|b| current_block.is_on_top(b));
                 is_over_ground = current_block.start.z == self.z_floor;
-
-                changed = true;
             }
         }
-
-        changed
-    }
-
-    fn simulate(&mut self) {
-        while self.apply_z_force() {}
     }
 }
 
@@ -123,7 +112,7 @@ pub fn solve(input: &'static str) -> String {
 
     let mut world = World::new(blocks);
 
-    world.simulate();
+    world.apply_z_force();
 
     let mut support = HashMap::new();
 
