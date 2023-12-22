@@ -7,6 +7,7 @@
 use glam::UVec3;
 use petgraph::algo::dijkstra;
 use petgraph::prelude::*;
+use std::borrow::BorrowMut;
 use std::str::FromStr;
 
 #[derive(PartialEq, Eq, Clone, Debug, Hash)]
@@ -54,42 +55,12 @@ impl Ord for Block {
 }
 
 impl Block {
-    fn points_inside(&self) -> Vec<UVec3> {
-        let mut interior = vec![];
-
-        for x in self.start.x..=self.end.x {
-            for y in self.start.y..=self.end.y {
-                for z in self.start.z..=self.end.z {
-                    interior.push(UVec3::new(x, y, z));
-                }
-            }
-        }
-
-        interior
-    }
-
-    fn points_below(&self) -> Vec<UVec3> {
-        let mut floor = vec![];
-
-        if self.start.z == 0 {
-            return floor;
-        }
-
-        for x in self.start.x..=self.end.x {
-            for y in self.start.y..=self.end.y {
-                floor.push(UVec3::new(x, y, self.start.z - 1));
-            }
-        }
-
-        floor
-    }
-
     fn is_on_top(&self, other: &Block) -> bool {
-        let points_below = self.points_below();
+        let overlap_x = self.start.x <= other.end.x && other.start.x <= self.end.x;
+        let overlap_y = self.start.y <= other.end.y && other.start.y <= self.end.y;
+        let overlap_z = (self.start.z - 1) <= other.end.z && other.start.z <= (self.end.z - 1);
 
-        let points_inside_other = other.points_inside();
-
-        points_below.iter().any(|p| points_inside_other.contains(p))
+        overlap_x && overlap_y && overlap_z
     }
 
     fn move_down(&mut self) {
@@ -123,16 +94,22 @@ impl World {
 
             let current_block = &blocks[i];
 
-            let is_over_ground = current_block.start.z == self.z_floor;
+            let mut is_over_ground = current_block.start.z == self.z_floor;
 
-            let is_over_other_block = blocks[0..i].iter().any(|b| current_block.is_on_top(b));
+            let mut is_over_other_block = blocks[0..i].iter().any(|b| current_block.is_on_top(b));
 
-            if !is_over_ground && !is_over_other_block {
+            while !is_over_ground && !is_over_other_block {
                 let current_block = &mut blocks[i];
+
                 current_block.move_down();
 
+                let current_block = &blocks[i];
+
+                is_over_other_block = blocks[0..i].iter().any(|b| current_block.is_on_top(b));
+                is_over_ground = current_block.start.z == self.z_floor;
+
                 changed = true;
-            };
+            }
         }
 
         changed
@@ -147,14 +124,6 @@ pub fn solve(input: &'static str) -> String {
     let blocks: Vec<_> = input.lines().map(|l| l.parse::<Block>().unwrap()).collect();
 
     let mut world = World::new(blocks);
-
-    let block_names: Vec<char> = (0..world.blocks.len())
-        .scan('A', |state, _| {
-            let name = *state;
-            *state = (*state as u8 + 1) as char;
-            Some(name)
-        })
-        .collect();
 
     world.simulate();
 
