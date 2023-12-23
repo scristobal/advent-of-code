@@ -1,5 +1,6 @@
 run part:
-    cargo run --bin part-{{part}} --release
+    just build {{part}}
+    ./target/release/part-{{part}}
 build part:
     cargo build --bin part-{{part}} --release
 bench part:
