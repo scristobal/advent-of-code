@@ -1,0 +1,9 @@
+run part:
+    cargo build --bin part-{{part}} --release
+    ./target/release/part-{{part}}
+build part:
+    cargo build --bin part-{{part}} --release
+bench part:
+    cargo bench --bench part_{{part}}
+test part:
+    cargo watch -x "nextest run part_{{part}}" --clear
