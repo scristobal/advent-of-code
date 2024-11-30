@@ -2,7 +2,7 @@
 
 # create a new AoC day using template, eg. $ just start 2023 04
 create year day:
-    cp -r .template {{year}}/day-{{day}}
+    cp -r template {{year}}/day-{{day}}
     code {{year}}/day-{{day}}
 
 # use TUI to create AoC day from template
