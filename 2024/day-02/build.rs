@@ -14,7 +14,7 @@ fn main() -> Result<(), anyhow::Error> {
         return Ok(());
     };
 
-    let url = format!("https://adventofcode.com/2023/day/{}/input", &day);
+    let url = format!("https://adventofcode.com/2024/day/{}/input", &day);
 
     let session = std::env::var("SESSION").expect("SESSION env var should be set");
 
