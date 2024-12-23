@@ -8,11 +8,12 @@ pub fn solve(input: &'static str) -> Result<String> {
 mod tests {
     use super::*;
 
-    const SAMPLE: &str = "";
-
     #[test]
     fn solve_sample() {
-        let result = solve(SAMPLE).unwrap();
+        #[rustfmt::skip]
+        let result = solve(
+"").unwrap();
+
         assert_eq!(result, "");
     }
 }
