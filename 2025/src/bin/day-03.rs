@@ -63,7 +63,7 @@ fn discard_many(bytes: &[u8], bytemask: &mut [bool], how_many: usize) {
     }
 }
 
-fn solve_p2(s: &str) -> u64 {
+fn solve_p2b(s: &str) -> u64 {
     let mut result: u64 = 0;
 
     for line in s.lines() {
@@ -83,6 +83,32 @@ fn solve_p2(s: &str) -> u64 {
         }
 
         result += p;
+    }
+
+    result
+}
+
+fn solve_p2(s: &str) -> u64 {
+    let mut result: u64 = 0;
+
+    for line in s.lines() {
+        let bytes = line.as_bytes();
+
+        let mut j = 0;
+        let mut current = 0;
+
+        for remaining in (0..12).rev() {
+            let (i, n) = bytes[j..(line.len() - remaining)].iter().enumerate().fold(
+                (0, 0),
+                |(i, n), (k, v)| if *v > n { (k, *v) } else { (i, n) },
+            );
+
+            j += i + 1;
+            current *= 10;
+            current += n as u64 - 48;
+        }
+
+        result += current;
     }
 
     result
