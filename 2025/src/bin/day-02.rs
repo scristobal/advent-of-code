@@ -42,7 +42,7 @@ fn solve_p1(input: &str) -> u64 {
 }
 
 // u64::MAX.ilog10() == 19
-const PRIMES : [u64;8] = [2,3,5,7,11,13,17,19];
+const PRIMES: [u64; 8] = [2, 3, 5, 7, 11, 13, 17, 19];
 
 fn is_invalid_p2(n: u64) -> bool {
     let num_digits = (n.ilog10() + 1) as u64;
@@ -57,12 +57,11 @@ fn is_invalid_p2(n: u64) -> bool {
 }
 
 fn is_invalid_s(n: u64, s: u64, num_digits: u64) -> bool {
-
     if !num_digits.is_multiple_of(s) {
         return false;
     }
 
-    let cut = 10_u64.pow((num_digits/s) as u32);
+    let cut = 10_u64.pow((num_digits / s) as u32);
 
     let lower = n % cut;
 

@@ -20,7 +20,14 @@ name = "aoc-2025"
 version = "0.0.0"
 dependencies = [
  "ahash",
+ "bitset",
 ]
+
+[[package]]
+name = "bitset"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cd450435a044ff3a192c9b0063e9f612ee3e2b2e23388332bc3aada13e3f7f6b"
 
 [[package]]
 name = "cfg-if"
