@@ -8,7 +8,7 @@
 
 #define MAX_SIZE 256
 
-static bool grid[MAX_SIZE][MAX_SIZE];
+static bool grid[MAX_SIZE + 2][MAX_SIZE + 2];  // +2 for padding to avoid bounds checks
 static int height = 0;
 static int width = 0;
 
@@ -61,7 +61,7 @@ static void parse(const char *filename) {
         }
 
         for (int x = 0; x < len && x < MAX_SIZE; x++) {
-            grid[height][x] = (line_start[x] == '@');
+            grid[height + 1][x + 1] = (line_start[x] == '@');  // +1 offset for padding
         }
         height++;
     }
@@ -75,9 +75,7 @@ static int count_neighbors(int x, int y) {
     for (int i = 0; i < 8; i++) {
         int nx = x + dx[i];
         int ny = y + dy[i];
-        if (nx >= 0 && nx < width && ny >= 0 && ny < height && grid[ny][nx]) {
-            neighbors++;
-        }
+        neighbors += grid[ny][nx];  // padding eliminates bounds checks
     }
     return neighbors;
 }
@@ -85,8 +83,8 @@ static int count_neighbors(int x, int y) {
 static int get_accessible(int accessible_x[], int accessible_y[]) {
     int count = 0;
 
-    for (int y = 0; y < height; y++) {
-        for (int x = 0; x < width; x++) {
+    for (int y = 1; y <= height; y++) {
+        for (int x = 1; x <= width; x++) {
             if (!grid[y][x]) {
                 continue;
             }
