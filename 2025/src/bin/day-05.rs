@@ -46,7 +46,7 @@ fn solve_p2(s: &str) -> u64 {
     let mut ranges = ranges.into_iter();
 
     let mut res = 0;
-    
+
     let mut current = ranges.next().unwrap();
 
     for range in ranges {
@@ -59,11 +59,10 @@ fn solve_p2(s: &str) -> u64 {
         }
     }
 
-    res += current.1 - current.0 +1;
+    res += current.1 - current.0 + 1;
 
     res
 }
-
 
 #[cfg(test)]
 mod test {
