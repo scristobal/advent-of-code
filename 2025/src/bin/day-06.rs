@@ -36,7 +36,7 @@ fn solve_p1<const N: usize>(s: &str) -> u128 {
     accs.values().sum()
 }
 
-fn solve_p2<const N:usize>(s: &str) -> u128 {
+fn solve_p2<const N: usize>(s: &str) -> u128 {
     let ops = s
         .lines()
         .last()
@@ -49,14 +49,11 @@ fn solve_p2<const N:usize>(s: &str) -> u128 {
 
     for (j, line) in s.lines().take(N).enumerate() {
         for (i, char) in line.chars().enumerate() {
-            data.entry(i)
-                .and_modify(|v| v[j] = char)
-                .or_insert(
-                    {
-                        let mut new = [' ';N];
-                        new[0]= char;
-                        new
-                    });
+            data.entry(i).and_modify(|v| v[j] = char).or_insert({
+                let mut new = [' '; N];
+                new[0] = char;
+                new
+            });
         }
     }
 
@@ -84,7 +81,7 @@ fn solve_p2<const N:usize>(s: &str) -> u128 {
                     rows[j].push(char.to_digit(10).map(|d| d as u8));
                 })
                 .or_insert({
-                    let mut empty = [const { Vec::new()} ; N];
+                    let mut empty = [const { Vec::new() }; N];
                     empty[j].push(char.to_digit(10).map(|d| d as u8));
                     empty
                 });
@@ -121,7 +118,6 @@ fn solve_p2<const N:usize>(s: &str) -> u128 {
 
     accs.values().sum()
 }
-
 
 #[cfg(test)]
 mod test {

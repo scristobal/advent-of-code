@@ -17,18 +17,16 @@ fn solve_p2(s: &str) -> usize {
 mod test {
     use crate::*;
 
+    const SAMPLE: &str = "";
+
     #[test]
     fn sample_p1() {
-        let s = "";
-
-        assert_eq!(solve_p1(s), 0)
+        assert_eq!(solve_p1(SAMPLE), 0)
     }
 
     #[test]
     #[ignore]
     fn sample_p2() {
-        let s = "";
-
-        assert_eq!(solve_p2(s), 0)
+        assert_eq!(solve_p2(SAMPLE), 0)
     }
 }
