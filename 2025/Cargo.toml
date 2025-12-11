@@ -7,5 +7,7 @@ edition = "2024"
 ahash = "0.8.12"
 bitset = "0.1.2"
 itertools = "0.14.0"
-petgraph = "0.8.3"
+pathfinding = "4.14.0"
+petgraph = { version = "0.8.3", features = ["rayon"] }
+rayon = "1.11.0"
 z3 = "0.19.5"
